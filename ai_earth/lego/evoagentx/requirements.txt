@@ -1,0 +1,10 @@
+# EvoAgentX LEGO dependencies
+networkx>=3.0
+pydantic>=2.0
+loguru
+overdue
+tree-sitter
+tree-sitter-python
+tenacity
+openai
+litellm
