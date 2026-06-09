@@ -1,0 +1,43 @@
+{
+    "schema_version": "1.0",
+    "component": "META_ENGINE",
+    "description": "Schema for meta-optimization results",
+    "fields": [
+        {
+            "name": "trajectory_summary",
+            "type": "string",
+            "required": true,
+            "description": "Summary of generation trajectory analysis"
+        },
+        {
+            "name": "textual_gradient",
+            "type": "string",
+            "required": true,
+            "description": "What should change to reduce loss (TextGrad output)"
+        },
+        {
+            "name": "winning_pattern",
+            "type": "string",
+            "required": false,
+            "description": "What patterns led to improvement"
+        },
+        {
+            "name": "losing_pattern",
+            "type": "string",
+            "required": false,
+            "description": "What patterns led to degradation"
+        },
+        {
+            "name": "meta_instruction",
+            "type": "string",
+            "required": true,
+            "description": "Instruction to feed into Feedback Agent"
+        },
+        {
+            "name": "confidence",
+            "type": "number",
+            "required": true,
+            "description": "Confidence in this meta result (0-1)"
+        }
+    ]
+}

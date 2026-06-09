@@ -1,0 +1,83 @@
+{
+    "schema_version": "1.0",
+    "component": "AGENT_HUB",
+    "description": "Schema for agent specifications in the Agent Hub",
+    "fields": [
+        {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique agent identifier (UUID)"
+        },
+        {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "description": "Human-readable agent name"
+        },
+        {
+            "name": "soul",
+            "type": "object",
+            "required": true,
+            "description": "Agent soul configuration (SOUL.md equivalent)",
+            "subfields": {
+                "personality": "Agent personality traits",
+                "values": "Core values and priorities",
+                "boundaries": "What the agent will NOT do",
+                "max_cost_usd": "Budget limit per run",
+                "soul_type": "research/coding/critic/meta/default"
+            }
+        },
+        {
+            "name": "memory_config",
+            "type": "object",
+            "required": true,
+            "description": "Memory tier configuration"
+        },
+        {
+            "name": "tool_names",
+            "type": "array",
+            "items": "string",
+            "required": true,
+            "description": "List of tools this agent can use"
+        },
+        {
+            "name": "skill_names",
+            "type": "array",
+            "items": "string",
+            "required": true,
+            "description": "List of skills this agent can use"
+        },
+        {
+            "name": "beliefs",
+            "type": "object",
+            "required": true,
+            "description": "BDI Beliefs — what the agent knows (current state)"
+        },
+        {
+            "name": "desires",
+            "type": "object",
+            "required": true,
+            "description": "BDI Desires — what the agent wants (goal contract)"
+        },
+        {
+            "name": "intentions",
+            "type": "object",
+            "required": true,
+            "description": "BDI Intentions — what the agent committed to do"
+        },
+        {
+            "name": "pipeline_config",
+            "type": "object",
+            "required": false,
+            "description": "Pipeline configuration overrides"
+        },
+        {
+            "name": "run_history",
+            "type": "array",
+            "items": "object",
+            "required": false,
+            "description": "History of runs this agent participated in"
+        }
+    ]
+}

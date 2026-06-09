@@ -1,0 +1,62 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Type checking
+.mypy_cache/
+
+# Database
+*.db
+*.sqlite3
+research_memory.db
+agent_registry.db
+skill_registry.db
+
+# Logs
+*.log
+logs/
+
+# Run outputs
+runs/
+results/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sandbox
+sandbox_tmp/
+
+# AI Earth runtime
+.genesis/
+ai_earth_data/
