@@ -410,4 +410,5 @@ class TestLEGOPieceIntegration:
         
         # Verify platform state
         info = earth.platform_info()
-        assert info["totals"]["tests"] == 542
+        assert info["totals"]["tests"] == 543
+        assert len(info["lego_pieces"]) == 9

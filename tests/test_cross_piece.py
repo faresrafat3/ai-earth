@@ -122,15 +122,15 @@ class TestCrossPieceBridge:
         info = earth.platform_info()
         assert "lego_pieces" in info
         assert "totals" in info
-        assert info["totals"]["tests"] == 542
-        assert len(info["lego_pieces"]) == 7
+        assert info["totals"]["tests"] == 543
+        assert len(info["lego_pieces"]) == 9
 
     def test_platform_stats(self):
         from ai_earth.orchestrator import AIEarth
         earth = AIEarth()
         stats = earth.platform_stats()
         assert "ai-earth" in stats
-        assert "542 tests" in stats
+        assert "543 tests" in stats
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -258,4 +258,4 @@ class TestIntegrationScenarios:
         # Verify platform stats
         stats = earth.platform_stats()
         assert "research" in stats
-        assert "542 tests" in stats
+        assert "543 tests" in stats

@@ -36,7 +36,7 @@ class TestUIModule:
         info = earth.platform_info()
         assert "lego_pieces" in info
         assert "totals" in info
-        assert len(info["lego_pieces"]) == 7
+        assert len(info["lego_pieces"]) == 9
 
     def test_ui_evolution_core(self):
         """Test evolution core is available for evolve page."""
@@ -99,8 +99,8 @@ class TestUIModule:
         earth = AIEarth()
         stats = earth.platform_stats()
         assert "ai-earth" in stats
-        assert "542 tests" in stats
-        assert "7" in stats  # 7 LEGO pieces
+        assert "543 tests" in stats
+        assert "9" in stats  # 9 LEGO pieces/papers
 
 
 class TestUIEvolutionIntegration:

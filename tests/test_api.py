@@ -30,7 +30,7 @@ class TestPlatformEndpoints:
         data = response.json()
         assert "lego_pieces" in data
         assert "totals" in data
-        assert data["totals"]["tests"] >= 542
+        assert data["totals"]["tests"] >= 543
 
     def test_stats(self):
         response = client.get("/stats")
@@ -45,7 +45,7 @@ class TestPlatformEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
-        assert data["version"] == "0.2.0"
+        assert data["version"] == "0.4.0"
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -275,7 +275,7 @@ class TestLEGOEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert "pieces" in data
-        assert len(data["pieces"]) == 7
+        assert len(data["pieces"]) == 9
         assert "totals" in data
 
     def test_get_lego_piece(self):

@@ -44,7 +44,12 @@ class DNAExtractor:
         )
         
         try:
-            return json.loads(response.content)
+            content = response.content.strip()
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.endswith("```"):
+                content = content[:-3]
+            return json.loads(content.strip())
         except Exception as e:
             logger.error(f"Failed to parse DNA JSON: {e}")
             return {"error": "Failed to parse extraction", "raw": response.content}

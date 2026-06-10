@@ -896,6 +896,13 @@ def _extend_aiearth():
                 "components": "Event-Driven Runtime + 4 Team Types + Agents + Tools + Memory",
                 "tests": 55,
             },
+            "active_symbolic": {
+                "source": "arxiv.org/abs/2606.01444 (June 2026)",
+                "files": 1,
+                "lines": 85,
+                "components": "Category-Theoretic Framework + Builder/Breaker Agents + MDL Gates",
+                "tests": 1,
+            },
             "research_discovery": {
                 "source": "AI Earth Intelligence Aggregator",
                 "files": 1,
@@ -905,10 +912,10 @@ def _extend_aiearth():
             }
         }
         info["totals"] = {
-            "files": 837,
-            "lines": 197901,
-            "tests": 542,
-            "papers": 8,
+            "files": 838,
+            "lines": 197986,
+            "tests": 543,
+            "papers": 9,
         }
         
         # Add cross-piece bridge status
@@ -999,5 +1006,7 @@ def _extend_aiearth():
     AIEarth.compose = compose
     AIEarth.platform_info = platform_info
     AIEarth.platform_stats = platform_stats
+    AIEarth.discover_intelligence = discover_intelligence
+    AIEarth.digest_research = digest_research
 
 _extend_aiearth()
