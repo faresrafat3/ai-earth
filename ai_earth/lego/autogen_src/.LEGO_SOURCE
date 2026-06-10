@@ -1,0 +1,16 @@
+Source: https://github.com/microsoft/autogen (42K+ ⭐)
+Version: 0.7.5 (autogen-core + autogen-agentchat)
+Description: Event-driven Multi-Agent Framework by Microsoft
+Extracted:
+  - core/: Agent runtime, models, tools, memory, code execution (67 files)
+  - agentchat/: Agents, teams, conditions, messages, UI (44 files)
+Key Components:
+  - RoutedAgent + message_handler — event-driven agent base
+  - AssistantAgent, UserProxyAgent, CodeExecutorAgent — agent types
+  - RoundRobinGroupChat, SelectorGroupChat, Swarm, MagenticOneGroupChat — team types
+  - FunctionTool — tool integration
+  - Memory/ListMemory — in-memory store
+  - ChatCompletionClient — unified model interface
+  - Termination conditions (5 types)
+  - CancellationToken — async cancellation
+  - SingleThreadedAgentRuntime — agent execution runtime
