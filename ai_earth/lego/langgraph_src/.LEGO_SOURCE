@@ -1,0 +1,3 @@
+# LangGraph LEGO pieces — source files extracted verbatim from github.com/langchain-ai/langgraph
+# Real package: pip install langgraph
+# Files here are the actual source code for reference and integration
