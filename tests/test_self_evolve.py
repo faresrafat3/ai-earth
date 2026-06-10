@@ -410,4 +410,4 @@ class TestLEGOPieceIntegration:
         
         # Verify platform state
         info = earth.platform_info()
-        assert info["totals"]["tests"] == 398
+        assert info["totals"]["tests"] == 542

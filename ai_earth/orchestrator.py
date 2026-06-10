@@ -889,12 +889,19 @@ def _extend_aiearth():
                 "components": "Agent + Task + Crew + Flow + Memory + Knowledge + Tools",
                 "tests": 49,
             },
+            "autogen": {
+                "source": "github.com/microsoft/autogen (42K+ ⭐)",
+                "files": 111,
+                "lines": 20206,
+                "components": "Event-Driven Runtime + 4 Team Types + Agents + Tools + Memory",
+                "tests": 55,
+            },
         }
         info["totals"] = {
-            "files": 725,
-            "lines": 177630,
-            "tests": 398,
-            "papers": 6,
+            "files": 836,
+            "lines": 197836,
+            "tests": 542,
+            "papers": 7,
         }
         
         # Add cross-piece bridge status
