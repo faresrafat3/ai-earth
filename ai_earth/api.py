@@ -15,7 +15,7 @@ Endpoints:
 
     GET  /models                    — List available models
     GET  /models/providers          — List providers & availability
-    POST /chat                      — Chat with LLM (mock by default)
+    POST /chat                      — Chat with real LLM via Key Pool
 
     POST /graphs                    — Create a LangGraph graph
     GET  /graphs                    — List all graphs
@@ -277,7 +277,7 @@ async def list_providers():
 
 @app.post("/chat", tags=["Models"])
 async def chat(req: ChatRequest):
-    """Chat with an LLM (mock mode by default)."""
+    """Chat with a real LLM via the Key Pool."""
     router = get_router()
     try:
         response = router.chat(

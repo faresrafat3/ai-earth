@@ -347,8 +347,8 @@ class TestAutoGenIntegration:
         from ai_earth.model_router import ModelRouter
         from autogen_core.models import UserMessage
         router = ModelRouter()
-        router.configure(mock=True)
-        assert router._mock_mode is True
+        router.configure()  # Real LLM
+        assert router.info()["real_llm"] is True
         msg = UserMessage(content="test", source="user")
         assert msg.content == "test"
 

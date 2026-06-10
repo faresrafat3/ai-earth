@@ -146,7 +146,7 @@ class TestModelEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert "content" in data
-        assert data["model"] == "gpt-4o-mini"
+        assert "gpt-4o-mini" in data["model"]
 
     def test_chat_with_system(self):
         response = client.post("/chat", json={

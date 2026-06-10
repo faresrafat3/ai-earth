@@ -50,10 +50,10 @@ class TestUIModule:
         """Test model router is available for chat page."""
         from ai_earth.model_router import ModelRouter
         router = ModelRouter()
-        router.configure(mock=True)
+        router.configure()  # Real LLM
         response = router.chat(prompt="Hello", model="gpt-4o-mini")
         assert response.content is not None
-        assert response.model == "gpt-4o-mini"
+        assert "gpt-4o-mini" in response.model
 
     def test_ui_models_list(self):
         """Test model listing for UI selector."""

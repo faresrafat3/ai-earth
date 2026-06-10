@@ -10,8 +10,8 @@ Strategies:
     - DSPy → define signature + predictor, call with inputs
     - Hybrid → compose multiple pieces together
 
-All execution goes through Model Router (mock mode by default,
-real LLM when API keys are configured).
+All execution goes through Model Router with real LLM calls
+via the Key Pool (OpenRouter, GitHub Models, Google AI Studio).
 
 Usage:
     from ai_earth.executor import ExecutionEngine
@@ -64,12 +64,12 @@ class ExecutionEngine:
     """
     ⚡ Real Execution Engine — routes through actual LEGO pieces.
     
-    Provides both mock and real execution paths:
-    - Mock: instantiates objects, validates types, returns structured results
-    - Real: invokes actual LLMs through Model Router (requires API keys)
+    Routes through actual LEGO piece APIs with real LLM intelligence.
+    
+    - All calls use real LLMs via the Key Pool
     
     Example:
-        engine = ExecutionEngine(mock=True)
+        engine = ExecutionEngine()
         
         # LangGraph execution
         result = engine.run("Analyze data", strategy="langgraph")
@@ -81,9 +81,9 @@ class ExecutionEngine:
         result = engine.run("Summarize paper", strategy="auto")
     """
     
-    def __init__(self, model_router=None, mock: bool = True):
+    def __init__(self, model_router=None):
         self._router = model_router
-        self._mock = mock
+        # Real LLM mode — no mock
         self._history: List[ExecResult] = []
     
     @property
@@ -91,7 +91,7 @@ class ExecutionEngine:
         if self._router is None:
             from ai_earth.model_router import ModelRouter
             self._router = ModelRouter()
-            self._router.configure(mock=self._mock)
+            self._router # Already uses real LLM
         return self._router
     
     def run(
@@ -194,7 +194,7 @@ class ExecutionEngine:
         """Execute through CrewAI-style agent composition."""
         from crewai import Process
         
-        # In mock mode, we create and validate structures
+        # Build and validate execution structures
         # without actually calling LLMs
         agent_defs = {
             "researcher": {"role": "Researcher", "goal": "Research information"},
@@ -377,7 +377,7 @@ class ExecutionEngine:
     def info(self) -> Dict[str, Any]:
         """Get engine info."""
         return {
-            "mock_mode": self._mock,
+            "real_llm": True,
             "executions": self.num_executions(),
             "strategies": [s.value for s in ExecStrategy],
             "available_pieces": {

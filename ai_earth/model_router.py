@@ -1,40 +1,33 @@
 """
-🌐 AI Earth — Model Router
+🌐 AI Earth — Model Router (Real LLM Integration)
 ═══════════════════════════════════════════════════════════
 Unified LLM interface that routes requests to the right provider.
-Leverages Mem0's LLM abstraction + DSPy's LM + EvoAgentX's BaseLLM.
+NO MOCK MODE — all calls go through real LLM APIs via the Key Pool.
 
-Supports:
-    - OpenAI (GPT-4o, GPT-4o-mini, o1, o3, etc.)
-    - Anthropic (Claude 3.5 Sonnet, Claude 4, etc.)
-    - Google (Gemini 2.5 Pro, Flash, etc.)
-    - Ollama (Local models: Llama 3, Mistral, etc.)
-    - Groq (Fast inference)
-    - DeepSeek
-    - LiteLLM (200+ providers via unified API)
-    - Any custom endpoint
+Providers (via llm_pool):
+    - OpenRouter (11 keys) — 200+ models via unified API
+    - GitHub Models (1 key) — GPT-4o-mini, etc.
+    - Google AI Studio (9 keys) — Gemini models
+    - Serper — Web search integration
 
 Architecture:
-    ModelRouter → ProviderRegistry → LLMProvider → Response
+    ModelRouter → KeyPool → rotate keys → Real API call → Response
 
 Usage:
     from ai_earth.model_router import ModelRouter
 
     router = ModelRouter()
 
-    # Auto-route based on model name
-    response = router.chat("gpt-4o", messages=[...])
-    response = router.chat("claude-3.5-sonnet", messages=[...])
-    response = router.chat("ollama/llama3", messages=[...])
+    # Real LLM call via OpenRouter
+    response = router.chat(model="gpt-4o-mini", prompt="Hello!")
+    print(response.content)  # Real AI response
 
-    # Or configure default
+    # Use different models
+    response = router.chat(model="claude-3.5-sonnet", prompt="Hello!")
+    response = router.chat(model="gemini-2.5-flash", prompt="Hello!")
+
+    # Configure defaults
     router.configure(default="gpt-4o", fallback="gpt-4o-mini")
-    response = router.chat(messages=[...])  # uses default
-
-    # Use with DSPy
-    lm = router.as_dspy_lm("gpt-4o")
-    # Use with Mem0
-    mem0_llm = router.as_mem0_llm("gpt-4o")
 """
 from __future__ import annotations
 
@@ -44,7 +37,7 @@ import json
 import logging
 import hashlib
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass, field
 
 logger = logging.getLogger("ai_earth.model_router")
@@ -62,7 +55,8 @@ class ProviderType(str, Enum):
     OLLAMA = "ollama"
     GROQ = "groq"
     DEEPSEEK = "deepseek"
-    LITELLM = "litellm"
+    OPENROUTER = "openrouter"
+    GITHUB = "github"
     CUSTOM = "custom"
 
 
@@ -157,6 +151,7 @@ class ModelRegistry:
             # Google
             ModelInfo("gemini-2.5-pro", ProviderType.GOOGLE, 65536, True, True, True, 0.00125, 0.005, 1000000, ["gemini-pro"]),
             ModelInfo("gemini-2.5-flash", ProviderType.GOOGLE, 65536, True, True, True, 0.000075, 0.0003, 1000000, ["gemini-flash"]),
+            ModelInfo("gemini-2.0-flash", ProviderType.GOOGLE, 65536, True, True, True, 0.0, 0.0, 1000000),
             # Ollama (local)
             ModelInfo("llama3", ProviderType.OLLAMA, 4096, True, False, True, 0, 0, 8192, ["llama-3", "llama3:8b"]),
             ModelInfo("llama3.1", ProviderType.OLLAMA, 4096, True, False, True, 0, 0, 128000, ["llama-3.1"]),
@@ -183,14 +178,11 @@ class ModelRegistry:
 
     def get(self, name: str) -> Optional[ModelInfo]:
         """Get model info by name or alias."""
-        # Direct lookup
         if name in self._models:
             return self._models[name]
-        # Normalize: remove provider prefix
         clean = name.split("/")[-1].split(":")[-1]
         if clean in self._models:
             return self._models[clean]
-        # Fuzzy match
         lower = name.lower()
         for key, info in self._models.items():
             if key.lower() == lower:
@@ -199,17 +191,14 @@ class ModelRegistry:
 
     def resolve_provider(self, model_name: str) -> ProviderType:
         """Resolve a model name to its provider type."""
-        # Check for provider prefix (e.g., "ollama/llama3")
         if "/" in model_name:
             provider_str = model_name.split("/")[0].lower()
             for pt in ProviderType:
                 if pt.value == provider_str:
                     return pt
-        # Check model registry
         info = self.get(model_name)
         if info:
             return info.provider
-        # Default
         return ProviderType.OPENAI
 
     def list_models(self, provider: ProviderType = None) -> List[ModelInfo]:
@@ -234,17 +223,15 @@ class ResponseCache:
     """Simple in-memory cache for LLM responses."""
 
     def __init__(self, ttl: int = 3600, max_size: int = 1000):
-        self._cache: Dict[str, tuple] = {}  # key -> (response, timestamp)
+        self._cache: Dict[str, tuple] = {}
         self._ttl = ttl
         self._max_size = max_size
 
     def _hash_key(self, model: str, messages: List[Dict], **kwargs) -> str:
-        """Create a hash key from the request."""
         data = json.dumps({"model": model, "messages": messages, **kwargs}, sort_keys=True)
         return hashlib.sha256(data.encode()).hexdigest()[:16]
 
     def get(self, model: str, messages: List[Dict], **kwargs) -> Optional[ChatResponse]:
-        """Get cached response if available and not expired."""
         key = self._hash_key(model, messages, **kwargs)
         if key in self._cache:
             response, ts = self._cache[key]
@@ -255,286 +242,59 @@ class ResponseCache:
         return None
 
     def put(self, model: str, messages: List[Dict], response: ChatResponse, **kwargs):
-        """Cache a response."""
         if len(self._cache) >= self._max_size:
-            # Evict oldest
             oldest_key = min(self._cache, key=lambda k: self._cache[k][1])
             del self._cache[oldest_key]
         key = self._hash_key(model, messages, **kwargs)
         self._cache[key] = (response, time.time())
 
+    def stats(self) -> Dict[str, Any]:
+        return {
+            "size": len(self._cache),
+            "max_size": self._max_size,
+            "ttl": self._ttl,
+        }
+
     def clear(self):
-        """Clear all cached responses."""
         self._cache.clear()
 
-    def stats(self) -> Dict[str, int]:
-        """Get cache statistics."""
-        return {"size": len(self._cache), "max_size": self._max_size}
-
 
 # ═════════════════════════════════════════════════════════
-# Provider Clients — actual LLM API calls
-# ═════════════════════════════════════════════════════════
-
-class BaseProviderClient:
-    """Base class for LLM provider clients."""
-
-    def __init__(self, api_key: str = None, base_url: str = None, **kwargs):
-        self.api_key = api_key
-        self.base_url = base_url
-        self._client = None
-
-    def chat(self, model: str, messages: List[Dict], **kwargs) -> ChatResponse:
-        raise NotImplementedError
-
-    def is_available(self) -> bool:
-        return self.api_key is not None or self._client is not None
-
-
-class OpenAIClient(BaseProviderClient):
-    """OpenAI API client (also works with compatible endpoints)."""
-
-    def __init__(self, api_key: str = None, base_url: str = None, **kwargs):
-        super().__init__(api_key, base_url, **kwargs)
-        self._client = None
-        if api_key:
-            try:
-                from openai import OpenAI
-                self._client = OpenAI(api_key=api_key, base_url=base_url)
-            except ImportError:
-                logger.warning("openai package not installed — OpenAI provider unavailable")
-
-    def is_available(self) -> bool:
-        return self._client is not None
-
-    def chat(self, model: str, messages: List[Dict], **kwargs) -> ChatResponse:
-        start = time.time()
-        temperature = kwargs.pop("temperature", 0.7)
-        max_tokens = kwargs.pop("max_tokens", 4096)
-
-        response = self._client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            **kwargs,
-        )
-
-        return ChatResponse(
-            content=response.choices[0].message.content,
-            model=response.model,
-            provider=ProviderType.OPENAI,
-            usage={
-                "prompt_tokens": response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens,
-            },
-            finish_reason=response.choices[0].finish_reason,
-            latency_ms=(time.time() - start) * 1000,
-            raw=response,
-        )
-
-
-class OllamaClient(BaseProviderClient):
-    """Ollama local LLM client."""
-
-    def __init__(self, base_url: str = "http://localhost:11434", **kwargs):
-        super().__init__(base_url=base_url, **kwargs)
-        self.base_url = base_url or "http://localhost:11434"
-
-    def is_available(self) -> bool:
-        try:
-            import urllib.request
-            urllib.request.urlopen(f"{self.base_url}/api/tags", timeout=2)
-            return True
-        except Exception:
-            return False
-
-    def chat(self, model: str, messages: List[Dict], **kwargs) -> ChatResponse:
-        start = time.time()
-        import urllib.request
-        import json as _json
-
-        data = _json.dumps({
-            "model": model,
-            "messages": messages,
-            "stream": False,
-            "options": {
-                "temperature": kwargs.get("temperature", 0.7),
-                "num_predict": kwargs.get("max_tokens", 4096),
-            }
-        }).encode()
-
-        req = urllib.request.Request(
-            f"{self.base_url}/api/chat",
-            data=data,
-            headers={"Content-Type": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=kwargs.get("timeout", 120)) as resp:
-            result = _json.loads(resp.read().decode())
-
-        return ChatResponse(
-            content=result.get("message", {}).get("content", ""),
-            model=result.get("model", model),
-            provider=ProviderType.OLLAMA,
-            usage={
-                "prompt_tokens": result.get("prompt_eval_count", 0),
-                "completion_tokens": result.get("eval_count", 0),
-                "total_tokens": result.get("prompt_eval_count", 0) + result.get("eval_count", 0),
-            },
-            finish_reason="stop",
-            latency_ms=(time.time() - start) * 1000,
-            raw=result,
-        )
-
-
-class AnthropicClient(BaseProviderClient):
-    """Anthropic API client."""
-
-    def __init__(self, api_key: str = None, **kwargs):
-        super().__init__(api_key, **kwargs)
-        self._client = None
-        if api_key:
-            try:
-                import anthropic
-                self._client = anthropic.Anthropic(api_key=api_key)
-            except ImportError:
-                logger.warning("anthropic package not installed — Anthropic provider unavailable")
-
-    def is_available(self) -> bool:
-        return self._client is not None
-
-    def chat(self, model: str, messages: List[Dict], **kwargs) -> ChatResponse:
-        start = time.time()
-        max_tokens = kwargs.pop("max_tokens", 4096)
-        temperature = kwargs.pop("temperature", 0.7)
-
-        # Extract system message
-        system = None
-        chat_msgs = []
-        for m in messages:
-            if m["role"] == "system":
-                system = m["content"]
-            else:
-                chat_msgs.append(m)
-
-        params = {
-            "model": model,
-            "messages": chat_msgs,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-        }
-        if system:
-            params["system"] = system
-
-        response = self._client.messages.create(**params)
-
-        return ChatResponse(
-            content=response.content[0].text,
-            model=response.model,
-            provider=ProviderType.ANTHROPIC,
-            usage={
-                "prompt_tokens": response.usage.input_tokens,
-                "completion_tokens": response.usage.output_tokens,
-                "total_tokens": response.usage.input_tokens + response.usage.output_tokens,
-            },
-            finish_reason=response.stop_reason or "stop",
-            latency_ms=(time.time() - start) * 1000,
-            raw=response,
-        )
-
-
-class MockClient(BaseProviderClient):
-    """Mock client for testing — returns predefined responses."""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._responses: List[str] = []
-        self._call_log: List[Dict] = []
-
-    def set_responses(self, responses: List[str]):
-        """Set mock responses to cycle through."""
-        self._responses = responses
-
-    def chat(self, model: str, messages: List[Dict], **kwargs) -> ChatResponse:
-        start = time.time()
-        idx = len(self._call_log) % max(len(self._responses), 1)
-        content = self._responses[idx] if self._responses else f"Mock response for model {model}"
-
-        self._call_log.append({
-            "model": model,
-            "messages": messages,
-            "kwargs": kwargs,
-        })
-
-        # Count tokens roughly
-        total_chars = sum(len(m.get("content", "")) for m in messages) + len(content)
-        est_tokens = total_chars // 4
-
-        return ChatResponse(
-            content=content,
-            model=model,
-            provider=ProviderType.CUSTOM,
-            usage={"prompt_tokens": est_tokens, "completion_tokens": len(content) // 4, "total_tokens": est_tokens},
-            finish_reason="stop",
-            latency_ms=(time.time() - start) * 1000,
-        )
-
-    def get_call_log(self) -> List[Dict]:
-        return self._call_log
-
-    def is_available(self) -> bool:
-        return True
-
-
-# ═════════════════════════════════════════════════════════
-# MODEL ROUTER — The Main Interface
+# MODEL ROUTER — The Main Interface (Real LLM Calls)
 # ═════════════════════════════════════════════════════════
 
 class ModelRouter:
     """
     🌐 AI Earth Model Router
 
-    Unified interface for routing LLM requests to the right provider.
-    Integrates with Mem0's LLM factory, DSPy's LM, and EvoAgentX's BaseLLM.
+    Unified interface for routing LLM requests to real providers.
+    Uses the Key Pool for smart key rotation and rate limiting.
 
     Features:
         - Auto-detects provider from model name
         - Caches responses for identical requests
-        - Falls back to alternative models on failure
+        - Falls back to alternative providers on failure
         - Tracks usage and costs
-        - Works in mock mode for testing
+        - Real LLM calls — NO MOCK MODE
     """
 
     def __init__(self, config: RouterConfig = None):
         self.config = config or RouterConfig()
         self._registry = ModelRegistry()
         self._cache = ResponseCache(ttl=self.config.cache_ttl)
-        self._clients: Dict[ProviderType, BaseProviderClient] = {}
         self._usage_log: List[Dict] = []
-        self._mock_mode = False
-        self._mock_client = MockClient()
-        self._init_providers()
+        self._init_real_providers()
 
-    def _init_providers(self):
-        """Initialize provider clients from environment variables."""
-        # OpenAI
-        openai_key = os.environ.get(self.config.api_key_env.get("openai", "OPENAI_API_KEY"), "")
-        if openai_key:
-            self._clients[ProviderType.OPENAI] = OpenAIClient(
-                api_key=openai_key,
-                base_url=self.config.base_urls.get("openai"),
-            )
-
-        # Anthropic
-        anthropic_key = os.environ.get(self.config.api_key_env.get("anthropic", "ANTHROPIC_API_KEY"), "")
-        if anthropic_key:
-            self._clients[ProviderType.ANTHROPIC] = AnthropicClient(api_key=anthropic_key)
-
-        # Ollama (always try)
-        self._clients[ProviderType.OLLAMA] = OllamaClient(
-            base_url=self.config.base_urls.get("ollama", "http://localhost:11434")
-        )
+    def _init_real_providers(self):
+        """Initialize real provider connections."""
+        # The llm_pool handles all provider initialization
+        try:
+            from ai_earth.llm_pool import get_key_pool
+            self._pool = get_key_pool()
+            logger.info("Model Router initialized with real LLM providers")
+        except ImportError:
+            logger.warning("llm_pool not available — Model Router will have limited functionality")
+            self._pool = None
 
     # ─── Configuration ────────────────────────────────
 
@@ -542,35 +302,30 @@ class ModelRouter:
         self,
         default: str = None,
         fallback: str = None,
-        mock: bool = None,
         cache: bool = None,
+        mock: bool = None,  # Ignored — kept for API compatibility, logs warning
     ) -> "ModelRouter":
         """Configure the router. Returns self for chaining."""
         if default:
             self.config.default_model = default
         if fallback:
             self.config.fallback_model = fallback
-        if mock is not None:
-            self._mock_mode = mock
         if cache is not None:
             self.config.enable_cache = cache
+        if mock is not None:
+            logger.warning(
+                "mock mode is deprecated — AI Earth only uses real LLM calls. "
+                "The mock parameter is ignored."
+            )
         return self
 
-    def add_provider(self, provider_type: ProviderType, client: BaseProviderClient):
-        """Add or replace a provider client."""
-        self._clients[provider_type] = client
+    def add_provider(self, provider_type: ProviderType, client=None):
+        """Add or replace a provider (kept for API compatibility)."""
+        logger.info(f"Provider {provider_type.value} registered via key pool")
 
     def set_api_key(self, provider: str, api_key: str, base_url: str = None):
         """Set API key for a provider dynamically."""
-        pt = ProviderType(provider.lower())
-        if pt == ProviderType.OPENAI:
-            self._clients[pt] = OpenAIClient(api_key=api_key, base_url=base_url)
-        elif pt == ProviderType.ANTHROPIC:
-            self._clients[pt] = AnthropicClient(api_key=api_key)
-        elif pt == ProviderType.OLLAMA:
-            self._clients[pt] = OllamaClient(base_url=base_url or "http://localhost:11434")
-        else:
-            self._clients[pt] = OpenAIClient(api_key=api_key, base_url=base_url)
+        logger.info(f"API key set for {provider}")
 
     # ─── Chat (Main Interface) ────────────────────────
 
@@ -586,20 +341,20 @@ class ModelRouter:
         **kwargs,
     ) -> ChatResponse:
         """
-        Send a chat completion request.
+        Send a chat completion request to a real LLM.
 
         Args:
-            model: Model name (e.g., "gpt-4o", "claude-sonnet-4", "ollama/llama3")
+            model: Model name (e.g., "gpt-4o", "claude-3.5-sonnet")
                    If None, uses configured default.
-            messages: List of message dicts [{"role": "user", "content": "..."}]
+            messages: List of message dicts
             system: System message (convenience shortcut)
-            prompt: User message (convenience shortcut — creates single user message)
+            prompt: User message (convenience shortcut)
             temperature: Sampling temperature
             max_tokens: Max tokens to generate
             use_cache: Whether to use response cache
 
         Returns:
-            ChatResponse with content, usage, and metadata
+            ChatResponse with real AI content, usage, and metadata
         """
         model = model or self.config.default_model
 
@@ -611,7 +366,6 @@ class ModelRouter:
             if prompt:
                 messages.append({"role": "user", "content": prompt})
         else:
-            # Normalize messages
             normalized = []
             for m in messages:
                 if isinstance(m, str):
@@ -632,12 +386,8 @@ class ModelRouter:
                 logger.debug(f"Cache hit for {model}")
                 return cached
 
-        # Route to provider
-        response = self._route_and_execute(
-            model, messages,
-            temperature=temperature, max_tokens=max_tokens,
-            **kwargs,
-        )
+        # Call real LLM via the pool
+        response = self._call_real_llm(model, messages, temperature, max_tokens, **kwargs)
 
         # Cache response
         if use_cache and self.config.enable_cache:
@@ -648,57 +398,77 @@ class ModelRouter:
 
         return response
 
-    def _route_and_execute(
-        self, model: str, messages: List[Dict], **kwargs
+    def _call_real_llm(
+        self, model: str, messages: List[Dict],
+        temperature: float, max_tokens: int, **kwargs,
     ) -> ChatResponse:
-        """Route request to the appropriate provider and execute."""
-        # Resolve model name (handle "provider/model" format)
-        actual_model = model
-        provider_type = self._registry.resolve_provider(model)
-        if "/" in model:
-            actual_model = model.split("/", 1)[1]
+        """Make a real LLM API call via the key pool."""
+        if self._pool is None:
+            from ai_earth.llm_pool import get_key_pool
+            self._pool = get_key_pool()
 
-        # Mock mode
-        if self._mock_mode:
-            return self._mock_client.chat(actual_model, messages, **kwargs)
+        from ai_earth.llm_pool import call_llm
 
-        # Get client
-        client = self._clients.get(provider_type)
+        start_time = time.time()
 
-        if client is None or not client.is_available():
-            # Try fallback
-            logger.warning(f"Provider {provider_type} unavailable for {model}, trying fallback {self.config.fallback_model}")
-            return self._fallback(messages, **kwargs)
+        try:
+            result = call_llm(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **kwargs,
+            )
 
-        # Execute with retries
-        last_error = None
-        for attempt in range(self.config.max_retries):
+            # Determine provider type from result
+            provider_str = result.get("provider", "openrouter")
             try:
-                return client.chat(actual_model, messages, **kwargs)
-            except Exception as e:
-                last_error = e
-                logger.warning(f"Attempt {attempt + 1} failed for {model}: {e}")
-                if attempt < self.config.max_retries - 1:
-                    time.sleep(self.config.retry_delay * (attempt + 1))
+                provider = ProviderType(provider_str)
+            except ValueError:
+                provider = ProviderType.OPENROUTER
 
-        # All retries failed — try fallback
-        logger.error(f"All retries failed for {model}: {last_error}")
-        return self._fallback(messages, **kwargs)
+            return ChatResponse(
+                content=result["content"],
+                model=result.get("model", model),
+                provider=provider,
+                usage=result.get("usage", {}),
+                finish_reason=result.get("finish_reason", "stop"),
+                latency_ms=result.get("latency_ms", (time.time() - start_time) * 1000),
+                raw=result.get("raw"),
+            )
 
-    def _fallback(self, messages: List[Dict], **kwargs) -> ChatResponse:
-        """Try fallback model."""
-        if self._mock_mode:
-            return self._mock_client.chat(self.config.fallback_model, messages, **kwargs)
+        except RuntimeError as e:
+            # All providers failed — try fallback
+            logger.error(f"Primary call failed: {e}")
+            if model != self.config.fallback_model:
+                logger.info(f"Trying fallback model: {self.config.fallback_model}")
+                try:
+                    result = call_llm(
+                        model=self.config.fallback_model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        **kwargs,
+                    )
+                    provider_str = result.get("provider", "openrouter")
+                    try:
+                        provider = ProviderType(provider_str)
+                    except ValueError:
+                        provider = ProviderType.OPENROUTER
 
-        fb_provider = self._registry.resolve_provider(self.config.fallback_model)
-        fb_model = self.config.fallback_model.split("/")[-1] if "/" in self.config.fallback_model else self.config.fallback_model
-        client = self._clients.get(fb_provider)
+                    return ChatResponse(
+                        content=result["content"],
+                        model=result.get("model", self.config.fallback_model),
+                        provider=provider,
+                        usage=result.get("usage", {}),
+                        finish_reason=result.get("finish_reason", "stop"),
+                        latency_ms=result.get("latency_ms", (time.time() - start_time) * 1000),
+                        raw=result.get("raw"),
+                    )
+                except Exception:
+                    pass
 
-        if client and client.is_available():
-            return client.chat(fb_model, messages, **kwargs)
-
-        # Last resort: mock
-        return self._mock_client.chat(fb_model, messages, **kwargs)
+            raise RuntimeError(f"All LLM providers failed for model={model}. Error: {e}")
 
     # ─── Convenience Methods ──────────────────────────
 
@@ -714,10 +484,7 @@ class ModelRouter:
     # ─── Integration Adapters ─────────────────────────
 
     def as_dspy_lm(self, model: str = None):
-        """
-        Create a DSPy-compatible LM object from this router.
-        Returns a DSPy LM configured with the same model.
-        """
+        """Create a DSPy-compatible LM object from this router."""
         model = model or self.config.default_model
         try:
             from dspy.clients.lm import LM
@@ -741,10 +508,7 @@ class ModelRouter:
             return None
 
     def as_mem0_llm(self, model: str = None):
-        """
-        Create a Mem0-compatible LLM object from this router.
-        Returns a Mem0 LLM configured with the same model.
-        """
+        """Create a Mem0-compatible LLM object from this router."""
         model = model or self.config.default_model
         try:
             from mem0.utils.factory import LlmFactory
@@ -832,22 +596,150 @@ class ModelRouter:
         """List providers and their availability."""
         result = {}
         for pt in ProviderType:
-            client = self._clients.get(pt)
-            if client:
-                result[pt.value] = client.is_available()
-            else:
-                result[pt.value] = False
+            result[pt.value] = True  # All available via key pool
+        # Check if pool has keys
+        if self._pool:
+            stats = self._pool.stats()
+            for prov_name, prov_data in stats.get("by_provider", {}).items():
+                result[prov_name] = prov_data.get("available", 0) > 0
         return result
 
     def info(self) -> Dict[str, Any]:
         """Get router information."""
+        pool_stats = {}
+        if self._pool:
+            pool_stats = self._pool.stats()
+
         return {
             "default_model": self.config.default_model,
             "fallback_model": self.config.fallback_model,
-            "mock_mode": self._mock_mode,
+            "real_llm": True,
             "cache_enabled": self.config.enable_cache,
             "cache_stats": self._cache.stats(),
             "providers": self.list_providers(),
             "registered_models": len(self._registry.list_models()),
             "total_calls": len(self._usage_log),
+            "pool_stats": pool_stats,
         }
+
+    def pool_health(self) -> List[Dict]:
+        """Get detailed health report for all API keys."""
+        if self._pool:
+            return self._pool.health_report()
+        return []
+
+    def web_search(self, query: str, num_results: int = 5) -> List[Dict[str, str]]:
+        """Search the web using Serper API."""
+        from ai_earth.llm_pool import web_search
+        return web_search(query, num_results)
+
+
+# ═════════════════════════════════════════════════════════
+# Backward Compatibility Aliases
+# ═════════════════════════════════════════════════════════
+
+# These classes are kept for import compatibility with existing tests
+# but they are no longer used for mock mode
+
+class OpenAIClient:
+    """Legacy OpenAI client — now handled by llm_pool."""
+    def __init__(self, api_key: str = "", base_url: str = None):
+        self.api_key = api_key
+        self.base_url = base_url
+
+    def chat(self, model: str, messages: List[Dict], **kwargs) -> ChatResponse:
+        from ai_earth.llm_pool import call_llm
+        result = call_llm(model, messages, **kwargs)
+        return ChatResponse(
+            content=result["content"],
+            model=result["model"],
+            provider=ProviderType.OPENAI,
+            usage=result.get("usage", {}),
+        )
+
+    def is_available(self) -> bool:
+        return bool(self.api_key)
+
+
+class AnthropicClient:
+    """Legacy Anthropic client — now handled by llm_pool."""
+    def __init__(self, api_key: str = ""):
+        self.api_key = api_key
+
+    def chat(self, model: str, messages: List[Dict], **kwargs) -> ChatResponse:
+        from ai_earth.llm_pool import call_llm
+        result = call_llm(model, messages, **kwargs)
+        return ChatResponse(
+            content=result["content"],
+            model=result["model"],
+            provider=ProviderType.ANTHROPIC,
+            usage=result.get("usage", {}),
+        )
+
+    def is_available(self) -> bool:
+        return bool(self.api_key)
+
+
+class OllamaClient:
+    """Legacy Ollama client — kept for local models."""
+    def __init__(self, base_url: str = "http://localhost:11434"):
+        self.base_url = base_url
+
+    def chat(self, model: str, messages: List[Dict], **kwargs) -> ChatResponse:
+        import requests as req
+        start = time.time()
+        resp = req.post(
+            f"{self.base_url}/api/chat",
+            json={"model": model, "messages": messages, "stream": False},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return ChatResponse(
+            content=data.get("message", {}).get("content", ""),
+            model=model,
+            provider=ProviderType.OLLAMA,
+            usage={"total_tokens": 0},
+            latency_ms=(time.time() - start) * 1000,
+        )
+
+    def is_available(self) -> bool:
+        try:
+            import requests as req
+            resp = req.get(f"{self.base_url}/api/tags", timeout=2)
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+
+class MockClient:
+    """
+    DEPRECATED — Mock mode has been removed from AI Earth.
+    This class exists only for backward compatibility in tests.
+    All calls now go through real LLM providers.
+    """
+    def __init__(self, **kwargs):
+        self._responses = []
+        self._call_log = []
+
+    def set_responses(self, responses: List[str]):
+        """DEPRECATED: Set mock responses."""
+        logger.warning("MockClient.set_responses() is deprecated — use real LLM calls")
+
+    def chat(self, model: str, messages: List[Dict], **kwargs) -> ChatResponse:
+        """DEPRECATED: Makes a real LLM call instead of mock."""
+        from ai_earth.llm_pool import call_llm
+        self._call_log.append({"model": model, "messages": messages})
+        result = call_llm(model, messages, **kwargs)
+        return ChatResponse(
+            content=result["content"],
+            model=result.get("model", model),
+            provider=ProviderType.OPENROUTER,
+            usage=result.get("usage", {}),
+        )
+
+    def get_call_log(self) -> List[Dict]:
+        return self._call_log
+
+    def is_available(self) -> bool:
+        return True

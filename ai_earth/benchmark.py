@@ -443,7 +443,7 @@ class BenchmarkSuite:
         try:
             from ai_earth.model_router import ModelRouter
             router = ModelRouter()
-            router.configure(mock=True)
+            router.configure()  # Real LLM via Key Pool
             response = router.chat(prompt="health check", model="gpt-4o-mini")
             latency = (time.time() - start) * 1000
             results.append(BenchResult(
@@ -452,7 +452,7 @@ class BenchmarkSuite:
                 passed=response.content is not None,
                 latency_ms=latency,
                 score=1.0,
-                details={"model": response.model, "mock": response.cached},
+                details={"model": response.model, "cached": response.cached},
             ))
         except Exception as e:
             latency = (time.time() - start) * 1000

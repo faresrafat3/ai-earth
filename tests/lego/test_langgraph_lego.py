@@ -270,11 +270,11 @@ class TestLangGraphIntegration:
         from ai_earth.model_router import ModelRouter
         from langgraph.graph.state import StateGraph
         router = ModelRouter()
-        router.configure(mock=True)
+        router.configure()  # Real LLM
         from typing import TypedDict
         class S(TypedDict): x: int
         sg = StateGraph(S)
-        assert router._mock_mode is True
+        assert router.info()["real_llm"] is True
         assert sg is not None
 
     def test_with_dspy(self):

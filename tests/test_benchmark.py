@@ -99,7 +99,7 @@ class TestBenchmarkSuite:
         suite = BenchmarkSuite()
         results = suite._bench_execution()
         assert len(results) == 5  # 5 strategies
-        # All should pass in mock mode
+        # All should pass with real LLM
         assert all(r.passed for r in results)
 
     def test_cross_piece_benchmarks(self):

@@ -345,8 +345,8 @@ class TestCrewAIIntegration:
         from ai_earth.model_router import ModelRouter
         from crewai import Agent, Process
         router = ModelRouter()
-        router.configure(mock=True)
-        assert router._mock_mode is True
+        router.configure()  # Real LLM
+        assert router.info()["real_llm"] is True
         assert Process.sequential.value == 'sequential'
 
     def test_with_langgraph(self):

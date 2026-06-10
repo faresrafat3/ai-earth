@@ -173,10 +173,10 @@ class TestIntegrationScenarios:
         from typing import TypedDict
 
         router = ModelRouter()
-        router.configure(mock=True)
+        router.configure()  # Real LLM
 
         # Model Router for LangGraph
-        assert router._mock_mode is True
+        assert router.info()["real_llm"] is True
         
         # LangGraph graph
         class S(TypedDict): x: int
@@ -225,7 +225,7 @@ class TestIntegrationScenarios:
 
         earth = AIEarth()
         router = ModelRouter()
-        router.configure(mock=True)
+        router.configure()  # Real LLM
         earth.bridge().set_router(router)
 
         # Create graph

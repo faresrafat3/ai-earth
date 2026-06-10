@@ -331,7 +331,7 @@ class TestLEGOPieceIntegration:
         from ai_earth.self_evolve import SelfEvolveCore
         from ai_earth.model_router import ModelRouter
         router = ModelRouter()
-        router.configure(mock=True)
+        router.configure()  # Real LLM
         core = SelfEvolveCore(model_router=router)
         result = core.evolve("Test with router", max_iterations=1)
         assert result.success
@@ -387,7 +387,7 @@ class TestLEGOPieceIntegration:
         # Setup platform
         earth = AIEarth()
         router = ModelRouter()
-        router.configure(mock=True)
+        router.configure()  # Real LLM
         
         # Setup core
         core = SelfEvolveCore(model_router=router)

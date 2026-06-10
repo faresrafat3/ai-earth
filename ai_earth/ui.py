@@ -58,7 +58,7 @@ def get_evolve_core():
 def get_router():
     from ai_earth.model_router import ModelRouter
     router = ModelRouter()
-    router.configure(mock=True)
+    router.configure()  # Uses real LLM via Key Pool
     return router
 
 # ═════════════════════════════════════════════════════════
@@ -385,7 +385,7 @@ elif page == "🧱 LEGO Pieces":
 
 elif page == "💬 Chat":
     st.title("💬 LLM Chat")
-    st.markdown("Chat with an LLM via the **Model Router** (mock mode by default).")
+    st.markdown("Chat with a real LLM via the **Model Router** (powered by OpenRouter + Key Pool).")
     
     router = get_router()
     

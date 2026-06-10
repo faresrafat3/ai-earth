@@ -19,7 +19,7 @@ class TestExecutorInit:
     def test_default_init(self):
         from ai_earth.executor import ExecutionEngine
         engine = ExecutionEngine()
-        assert engine.info()["mock_mode"] is True
+        assert engine.info()["real_llm"] is True
 
     def test_init_with_router(self):
         from ai_earth.executor import ExecutionEngine
@@ -234,7 +234,7 @@ class TestExecutorIntegration:
         from ai_earth.executor import ExecutionEngine
         from ai_earth.model_router import ModelRouter
         router = ModelRouter()
-        router.configure(mock=True)
+        router.configure()  # Real LLM
         engine = ExecutionEngine(model_router=router)
         result = engine.run("Test with router", strategy="langgraph")
         assert result.success

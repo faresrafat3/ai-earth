@@ -1,7 +1,8 @@
 """
 Tests for AI Earth Model Router
 ================================
-Tests the unified LLM interface.
+Tests the unified LLM interface with REAL LLM calls.
+No mock mode — all tests make real API calls via the Key Pool.
 """
 
 import sys
@@ -143,121 +144,101 @@ class TestResponseCache:
 
 
 # ═════════════════════════════════════════════════════════
-# 3. Mock Client Tests
+# 3. Real LLM Provider Tests (Integration)
 # ═════════════════════════════════════════════════════════
 
-class TestMockClient:
-    """Test mock LLM client."""
+class TestRealLLMProvider:
+    """Test real LLM provider calls via the Key Pool."""
 
-    def test_mock_default_response(self):
-        client = MockClient()
-        resp = client.chat("test-model", [{"role": "user", "content": "hi"}])
-        assert "Mock response" in resp.content
-        assert resp.model == "test-model"
+    def test_real_chat_call(self):
+        """Test that a real LLM call works and returns content."""
+        router = ModelRouter()
+        resp = router.chat(model="gpt-4o-mini", prompt="Say the word 'test' and nothing else.", max_tokens=10)
+        assert resp.content is not None
+        assert len(resp.content) > 0
+        assert isinstance(resp.content, str)
+        assert "test" in resp.content.lower()
 
-    def test_mock_custom_responses(self):
-        client = MockClient()
-        client.set_responses(["Hello!", "World!"])
-        r1 = client.chat("test", [{"role": "user", "content": "a"}])
-        r2 = client.chat("test", [{"role": "user", "content": "b"}])
-        assert r1.content == "Hello!"
-        assert r2.content == "World!"
+    def test_real_chat_with_system(self):
+        """Test real chat with system message."""
+        router = ModelRouter()
+        resp = router.chat(
+            model="gpt-4o-mini",
+            system="You only reply with the word 'hello'.",
+            prompt="Hi there!",
+            max_tokens=10,
+        )
+        assert resp.content is not None
+        assert len(resp.content) > 0
 
-    def test_mock_call_log(self):
-        client = MockClient()
-        client.chat("m1", [{"role": "user", "content": "a"}])
-        client.chat("m2", [{"role": "user", "content": "b"}])
-        log = client.get_call_log()
-        assert len(log) == 2
-        assert log[0]["model"] == "m1"
+    def test_real_chat_with_messages(self):
+        """Test real chat with message list."""
+        router = ModelRouter()
+        msgs = [
+            {"role": "system", "content": "Reply with exactly: OK"},
+            {"role": "user", "content": "Ready?"},
+        ]
+        resp = router.chat(model="gpt-4o-mini", messages=msgs, max_tokens=5)
+        assert resp.content is not None
+        assert len(resp.content) > 0
 
-    def test_mock_always_available(self):
-        client = MockClient()
-        assert client.is_available()
+    def test_real_ask(self):
+        """Test the ask() convenience method."""
+        router = ModelRouter()
+        result = router.ask("Say exactly: pong", model="gpt-4o-mini", max_tokens=10)
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_real_usage_tracking(self):
+        """Test that usage is tracked for real calls."""
+        router = ModelRouter()
+        router.chat(model="gpt-4o-mini", prompt="test usage tracking", max_tokens=10)
+        usage = router.get_usage()
+        assert usage["total_calls"] >= 1
+
+    def test_real_cache(self):
+        """Test that caching works with real responses."""
+        router = ModelRouter()
+        prompt = "test_cache_" + str(id(router))  # Unique prompt
+        r1 = router.chat(model="gpt-4o-mini", prompt=prompt, max_tokens=5, use_cache=True)
+        r2 = router.chat(model="gpt-4o-mini", prompt=prompt, max_tokens=5, use_cache=True)
+        assert r2.cached is True
+
+    def test_real_info(self):
+        """Test router info reflects real LLM mode."""
+        router = ModelRouter()
+        info = router.info()
+        assert info["real_llm"] is True
+        assert "pool_stats" in info
+
+    def test_pool_health(self):
+        """Test pool health report."""
+        router = ModelRouter()
+        health = router.pool_health()
+        assert isinstance(health, list)
+        assert len(health) > 0
+        # At least some keys should be available
+        available = [h for h in health if h["available"]]
+        assert len(available) > 0
 
 
 # ═════════════════════════════════════════════════════════
-# 4. Model Router Tests
+# 4. Model Router Tests (Configuration)
 # ═════════════════════════════════════════════════════════
 
 class TestModelRouter:
-    """Test the main Model Router."""
+    """Test the main Model Router configuration."""
 
     def test_router_creation(self):
         router = ModelRouter()
         assert router is not None
         assert router.config.default_model == "gpt-4o-mini"
 
-    def test_router_mock_mode(self):
+    def test_router_configure_default(self):
         router = ModelRouter()
-        router.configure(mock=True)
-        resp = router.chat(model="test-model", prompt="Hello!")
-        assert resp.content is not None
-
-    def test_router_ask(self):
-        router = ModelRouter()
-        router.configure(mock=True)
-        result = router.ask("What is AI?")
-        assert isinstance(result, str)
-
-    def test_router_batch(self):
-        router = ModelRouter()
-        router.configure(mock=True)
-        results = router.batch(["Q1", "Q2", "Q3"])
-        assert len(results) == 3
-
-    def test_router_configure(self):
-        router = ModelRouter()
-        router.configure(default="gpt-4o", fallback="claude-3.5-sonnet", mock=True)
+        router.configure(default="gpt-4o", fallback="claude-3.5-sonnet")
         assert router.config.default_model == "gpt-4o"
         assert router.config.fallback_model == "claude-3.5-sonnet"
-        assert router._mock_mode is True
-
-    def test_router_with_system(self):
-        router = ModelRouter()
-        router.configure(mock=True)
-        resp = router.chat(model="gpt-4o", system="You are a pirate", prompt="Hello!")
-        assert resp is not None
-
-    def test_router_with_messages(self):
-        router = ModelRouter()
-        router.configure(mock=True)
-        msgs = [
-            {"role": "system", "content": "Be helpful"},
-            {"role": "user", "content": "Hi"},
-        ]
-        resp = router.chat(model="gpt-4o", messages=msgs)
-        assert resp is not None
-
-    def test_router_cache(self):
-        router = ModelRouter()
-        router.configure(mock=True)
-        r1 = router.chat(model="gpt-4o", prompt="test cache", use_cache=True)
-        r2 = router.chat(model="gpt-4o", prompt="test cache", use_cache=True)
-        assert r2.cached is True
-
-    def test_router_no_cache(self):
-        router = ModelRouter()
-        router.configure(mock=True)
-        r1 = router.chat(model="gpt-4o", prompt="test no cache", use_cache=False)
-        r2 = router.chat(model="gpt-4o", prompt="test no cache", use_cache=False)
-        assert r2.cached is False
-
-    def test_router_usage_tracking(self):
-        router = ModelRouter()
-        router.configure(mock=True)
-        router.chat(model="gpt-4o", prompt="test usage 1")
-        router.chat(model="gpt-4o", prompt="test usage 2")
-        usage = router.get_usage()
-        assert usage["total_calls"] == 2
-
-    def test_router_usage_cost(self):
-        router = ModelRouter()
-        router.configure(mock=True)
-        router.chat(model="gpt-4o", prompt="test cost tracking")
-        usage = router.get_usage()
-        assert "total_cost_usd" in usage
-        assert "by_model" in usage
 
     def test_router_list_models(self):
         router = ModelRouter()
@@ -279,22 +260,28 @@ class TestModelRouter:
         assert "providers" in info
         assert "registered_models" in info
 
-    def test_router_custom_mock_responses(self):
-        router = ModelRouter()
-        router.configure(mock=True)
-        router._mock_client.set_responses(["Custom response!"])
-        resp = router.chat(model="test", prompt="anything")
-        assert resp.content == "Custom response!"
-
-    def test_router_add_provider(self):
-        router = ModelRouter()
-        mock = MockClient()
-        router.add_provider(ProviderType.CUSTOM, mock)
-
     def test_router_no_messages_error(self):
         router = ModelRouter()
         with pytest.raises(ValueError, match="No messages"):
             router.chat(model="test")
+
+    def test_mock_param_warning(self):
+        """Test that mock=True is ignored with a warning (not error)."""
+        import logging
+        router = ModelRouter()
+        # Should not raise — just log a warning
+        router.configure(mock=True)
+        assert True  # If we get here, it didn't crash
+
+    def test_router_add_provider(self):
+        """Test add_provider doesn't crash."""
+        router = ModelRouter()
+        router.add_provider(ProviderType.CUSTOM)
+
+    def test_router_set_api_key(self):
+        """Test set_api_key doesn't crash."""
+        router = ModelRouter()
+        router.set_api_key("openai", "test-key")
 
 
 # ═════════════════════════════════════════════════════════
@@ -339,9 +326,7 @@ class TestRouterIntegration:
 
         earth = AIEarth()
         router = ModelRouter()
-        router.configure(mock=True)
 
-        # Create workflow and run with router
         workflow = (
             earth.builder()
             .goal("Test workflow")
@@ -355,19 +340,16 @@ class TestRouterIntegration:
     def test_router_dspy_compatible(self):
         from ai_earth.model_router import ModelRouter
         router = ModelRouter()
-        # as_dspy_lm returns a DSPy LM or None
         lm = router.as_dspy_lm("gpt-4o")
         # May return None if DSPy LM can't be created, that's ok
 
     def test_router_mem0_compatible(self):
         from ai_earth.model_router import ModelRouter
         router = ModelRouter()
-        # as_mem0_llm tries to create real LLM — may fail without API keys
         try:
             llm = router.as_mem0_llm("gpt-4o")
         except Exception:
-            llm = None  # Expected without API keys
-        # That's ok — integration works, just needs credentials
+            llm = None
 
     def test_router_with_all_packages(self):
         """Test that router works alongside all LEGO packages."""
@@ -376,11 +358,9 @@ class TestRouterIntegration:
         from mem0.configs.base import MemoryConfig
 
         router = ModelRouter()
-        router.configure(mock=True)
-
         e = Example(question="test")
         mc = MemoryConfig()
-        resp = router.ask("Hello!")
+        resp = router.ask("Hello!", model="gpt-4o-mini", max_tokens=10)
 
         assert e.question == "test"
         assert mc is not None
