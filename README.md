@@ -8,10 +8,10 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-0.2.0-blue" />
-  <img src="https://img.shields.io/badge/tests-460%20passing-brightgreen" />
+  <img src="https://img.shields.io/badge/tests-554%20passing-brightgreen" />
   <img src="https://img.shields.io/badge/LEGO%20pieces-725%20files-orange" />
-  <img src="https://img.shields.io/badge/lines-177%2C630-purple" />
-  <img src="https://img.shields.io/badge/papers-6%20extracted-red" />
+  <img src="https://img.shields.io/badge/lines-197%2C836-purple" />
+  <img src="https://img.shields.io/badge/papers-7%20extracted-red" />
 </p>
 
 ---
@@ -38,7 +38,7 @@ Every component is:
 | 4 | **Model Router** | AI Earth Platform | — | 2 | 1,240 | 47 | Unified LLM Interface (7 providers, caching, cost tracking) |
 | 5 | **LangGraph** | langchain-ai/langgraph | 25K | 86 | 31,327 | 41 | Graph Engine + Channels + Pregel + Prebuilt Agents |
 | 6 | **CrewAI** | crewAIInc/crewAI | 22K | 153 | 40,301 | 49 | Multi-Agent Crews + Flow + Memory + Knowledge + Tools |
-| | **Total** | | **100K+** | **725** | **177,630** | **460** | |
+| | **Total** | | **142K+** | **836** | **197,836** | **554** | |
 
 ---
 
@@ -188,10 +188,10 @@ ai-earth/
 
 | Metric | Value |
 |---|---|
-| Papers Extracted | 6 |
-| Total Files | 725 |
-| Total Lines | 177,630 |
-| Total Tests | 460 ✅ |
+| Papers Extracted | 7 |
+| Total Files | 836 |
+| Total Lines | 197,836 |
+| Total Tests | 554 ✅ |
 | Evolution Strategies | 6 |
 | LLM Providers | 7 |
 | Optimizers | 6 |
@@ -208,11 +208,12 @@ ai-earth/
 - [x] ~~Paper #4: Model Router~~ (2 files, 1,240 lines, 47 tests)
 - [x] ~~Paper #5: LangGraph~~ (86 files, 31,327 lines, 41 tests)
 - [x] ~~Paper #6: CrewAI~~ (153 files, 40,301 lines, 49 tests)
+- [x] ~~Paper #7: AutoGen~~ (111 files, 20,206 lines, 55 tests)
 - [x] ~~Cross-Piece Bridge~~ (Orchestrator connects all pieces)
 - [x] ~~Self-Evolving Agent Core~~ (7-phase evolution loop)
-- [ ] Paper #7: AutoGen / OpenAI Agents SDK
-- [ ] Platform API (FastAPI REST wrapper)
-- [ ] Web UI (Streamlit / React)
+- [x] ~~Platform API~~ (FastAPI REST, 17 endpoints)
+- [x] ~~Streamlit Web UI~~ (4 pages, interactive)
+- [ ] Paper #8: Semantic Kernel / OpenAI Agents SDK
 - [ ] Real LLM integration (OpenAI/Anthropic/Gemini)
 - [ ] Production deployment
 
