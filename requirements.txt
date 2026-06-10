@@ -1,28 +1,53 @@
-# ═══ AI Earth — Core Dependencies ═══
+# ═══════════════════════════════════════════════════════════
+# 🌍 AI Earth — Platform Dependencies
+# ═══════════════════════════════════════════════════════════
+# 7 LEGO pieces + Self-Evolving Core + API + UI
+# Install: pip install -r requirements.txt
+# ═══════════════════════════════════════════════════════════
+
+# ─── Core ──────────────────────────────────────────────
 pydantic>=2.0
 networkx>=3.0
 numpy>=1.24
+typing_extensions>=4.0
 
-# ═══ AI Earth — Optimizer Dependencies ═══  
+# ─── Utilities ─────────────────────────────────────────
 tqdm>=4.60
 regex>=2023.0
-
-# ═══ AI Earth — Utility Dependencies ═══
 loguru>=0.7
-overdue>=0.5
-tree-sitter>=0.21
-tree-sitter-python>=0.21
 tenacity>=8.0
 cloudpickle>=3.0
 ujson>=5.0
 
-# ═══ AI Earth — LLM Dependencies (optional) ═══
-# openai>=1.0
-# litellm>=1.0
+# ─── EvoAgentX LEGO ───────────────────────────────────
+# (no extra deps — all self-contained)
 
-# ═══ Heavy Dependencies (stubbed — install if needed) ═══
-# textgrad>=0.1
-# dspy>=2.0
-# optuna>=3.0
-# llama-index>=0.10
-# torch>=2.0
+# ─── DSPy LEGO ────────────────────────────────────────
+dspy>=2.5
+
+# ─── Mem0 LEGO ────────────────────────────────────────
+mem0ai>=0.1
+
+# ─── LangGraph LEGO ───────────────────────────────────
+langgraph>=1.0
+langgraph-checkpoint>=4.0
+langchain-core>=1.0
+
+# ─── CrewAI LEGO ──────────────────────────────────────
+crewai>=1.0
+
+# ─── AutoGen LEGO ─────────────────────────────────────
+autogen-agentchat>=0.5
+autogen-core>=0.5
+
+# ─── Platform API ─────────────────────────────────────
+fastapi>=0.110
+uvicorn>=0.30
+httpx>=0.27
+
+# ─── Web UI ───────────────────────────────────────────
+streamlit>=1.35
+
+# ─── Testing ──────────────────────────────────────────
+pytest>=8.0
+pytest-anyio>=4.0
