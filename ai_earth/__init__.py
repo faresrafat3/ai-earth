@@ -1,25 +1,38 @@
 """
-AI Earth — The Living Intelligence Ecosystem
+🌍 AI Earth — The Living Intelligence Ecosystem
 
-A self-improving, self-evolving intelligence system built on:
-- 7 architectural layers
-- 25+ modular components
-- Scientific research foundations
-- 4-tier memory architecture
-- Triple-axis evolution tracking
+A self-improving, self-evolving intelligence system built from
+LEGO pieces extracted from research papers.
 
-From GENESIS to AI Earth.
+Architecture: 7 Layers
+    L1: Core (BaseModule, Registry, Config)
+    L2: Models + Prompts (BaseLLM, PromptTemplate)
+    L3: Agents + Actions (Agent, Action)
+    L4: Workflow (WorkFlowGraph, SequentialWorkFlowGraph, Operators)
+    L5: Memory + RAG (ShortTerm, LongTerm, MemoryManager, RAG Pipeline)
+    L6: Evaluation (Evaluator, 10 Benchmarks)
+    L7: Optimizers (SEW, AFlow, TextGrad, MIPRO, EvoPrompt, MapElites)
+
+LEGO Source: EvoAgentX (arXiv:2507.03616, EMNLP 2025)
 
 Usage:
-    from ai_earth.capabilities.tool_hub import catalog, get_tool
-    from ai_earth.capabilities.skill_engine import register, retrieve
-    from ai_earth.agents.hub import create_agent, load_agent
-    from ai_earth.core import boot
-
-Architecture: dev/architecture/AI_EARTH_MASTER_BLUEPRINT.md
-Methodologies: dev/methodologies/
+    from ai_earth.orchestrator import AIEarth
+    
+    earth = AIEarth()
+    
+    workflow = (
+        earth.builder()
+        .goal("Your workflow goal")
+        .task("step1", inputs={"x": "desc"}, outputs={"y": "desc"})
+        .task("step2", inputs={"y": "desc"}, outputs={"z": "desc"})
+        .sequential()
+        .build()
+    )
+    
+    graph = earth.create_workflow_from_spec(workflow)
+    earth.save_workflow("my-workflow", graph)
 """
 
 __version__ = "0.1.0"
 __author__ = "Fares Rafat"
-__status__ = "Phase 0 — Architecture Complete, Implementation Pending"
+__status__ = "Phase 1 — LEGO Pieces Assembled + Orchestrator Operational"
