@@ -413,3 +413,162 @@ class AIEarth:
             f"⚙️ Tracked parameters: {i['tracked_parameters']}",
         ]
         return "\n".join(lines)
+
+    # ─── Workflow Execution (Simulation) ─────────────────
+
+    def run(
+        self,
+        workflow: WorkFlowGraph,
+        inputs: Dict[str, Any] = None,
+        executor: callable = None,
+    ) -> RunResult:
+        """
+        Execute a workflow graph sequentially.
+
+        For real execution, pass an `executor` callable that takes
+        (node_name, prompt, inputs_dict) and returns a dict of outputs.
+        Without an executor, runs in simulation mode.
+
+        Args:
+            workflow: The workflow graph to execute
+            inputs: Initial input values keyed by input name
+            executor: Optional callable(node_name, prompt, inputs) -> dict
+
+        Returns:
+            RunResult with success status and outputs
+        """
+        start = time.time()
+        inputs = inputs or {}
+        node_outputs: Dict[str, Dict[str, Any]] = {}
+
+        if executor is None:
+            executor = self._default_executor
+
+        try:
+            # For SequentialWorkFlowGraph, execute in order
+            nodes = list(workflow.nodes)
+
+            for node in nodes:
+                # Gather inputs for this node
+                node_inputs = {}
+                for inp in node.inputs:
+                    if inp.name in inputs:
+                        node_inputs[inp.name] = inputs[inp.name]
+                    else:
+                        # Look for output from previous nodes
+                        for prev_name, prev_outs in node_outputs.items():
+                            if inp.name in prev_outs:
+                                node_inputs[inp.name] = prev_outs[inp.name]
+                                break
+
+                # Get prompt template
+                prompt = ""
+                if hasattr(node, 'actions') and node.actions:
+                    action = node.actions[0]
+                    if isinstance(action, dict) and 'prompt_template' in action:
+                        pt = action['prompt_template']
+                        prompt = pt.get('instruction', '') if isinstance(pt, dict) else str(pt)
+
+                # Execute
+                result = executor(node.name, prompt, node_inputs)
+                node_outputs[node.name] = result
+
+            # Collect final outputs from last node
+            last_node = nodes[-1]
+            final_outputs = node_outputs.get(last_node.name, {})
+
+            return RunResult(
+                success=True,
+                outputs=final_outputs,
+                metadata={
+                    "num_nodes": len(nodes),
+                    "node_outputs": node_outputs,
+                    "elapsed_seconds": time.time() - start,
+                }
+            )
+
+        except Exception as e:
+            return RunResult(
+                success=False,
+                outputs={},
+                metadata={"error": str(e), "elapsed_seconds": time.time() - start}
+            )
+
+    @staticmethod
+    def _default_executor(node_name: str, prompt: str, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Default simulation executor — returns inputs as outputs."""
+        if inputs:
+            key = list(inputs.keys())[0]
+            return {key: inputs[key], f"{key}_processed": f"[{node_name}] processed"}
+        return {"output": f"[{node_name}] executed"}
+
+    # ─── Workflow Comparison ─────────────────────────────
+
+    def compare_workflows(
+        self,
+        workflow_a: WorkFlowGraph,
+        workflow_b: WorkFlowGraph,
+    ) -> Dict[str, Any]:
+        """Compare two workflows and return differences."""
+        info_a = self.workflow_info(workflow_a)
+        info_b = self.workflow_info(workflow_b)
+
+        nodes_a = {n["name"] for n in info_a["nodes"]}
+        nodes_b = {n["name"] for n in info_b["nodes"]}
+
+        return {
+            "goal_a": info_a["goal"],
+            "goal_b": info_b["goal"],
+            "nodes_only_in_a": list(nodes_a - nodes_b),
+            "nodes_only_in_b": list(nodes_b - nodes_a),
+            "common_nodes": list(nodes_a & nodes_b),
+            "edges_a": info_a["num_edges"],
+            "edges_b": info_b["num_edges"],
+        }
+
+    # ─── Workflow Transformations ────────────────────────
+
+    def clone_workflow(self, workflow: WorkFlowGraph) -> WorkFlowGraph:
+        """Create a clone by re-creating from the spec."""
+        info = self.workflow_info(workflow)
+        tasks = []
+        for i, node_info in enumerate(info["nodes"]):
+            tasks.append({
+                "name": node_info["name"],
+                "description": node_info.get("description", node_info["name"]),
+                "inputs": [{"name": n, "type": "string", "required": True, "description": n}
+                           for n in node_info.get("inputs", [])],
+                "outputs": [{"name": n, "type": "string", "required": True, "description": n}
+                            for n in node_info.get("outputs", [])],
+                "prompt": f"Process step {i+1}",
+                "parse_mode": "str",
+            })
+        if isinstance(workflow, SequentialWorkFlowGraph):
+            return SequentialWorkFlowGraph(goal=workflow.goal, tasks=tasks)
+        return WorkFlowGraph(goal=workflow.goal, nodes=[], edges=[])
+
+    def export_workflow_json(self, workflow: WorkFlowGraph, path: str) -> str:
+        """Export workflow info to a JSON file."""
+        data = self.workflow_info(workflow)
+        data["class"] = type(workflow).__name__
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        return path
+
+    def import_workflow_json(self, path: str) -> SequentialWorkFlowGraph:
+        """Import a workflow from a JSON file (returns SequentialWorkFlowGraph)."""
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        tasks = []
+        for i, node in enumerate(data.get("nodes", [])):
+            tasks.append({
+                "name": node["name"],
+                "description": node.get("name", ""),
+                "inputs": [{"name": n, "type": "string", "required": True, "description": n}
+                           for n in node.get("inputs", [])],
+                "outputs": [{"name": n, "type": "string", "required": True, "description": n}
+                            for n in node.get("outputs", [])],
+                "prompt": f"Process step {i+1}",
+                "parse_mode": "str",
+            })
+        return SequentialWorkFlowGraph(goal=data.get("goal", ""), tasks=tasks)
