@@ -46,6 +46,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass, field
 
+from ai_earth.safety.timeout import timeout_guardian
 
 # ═════════════════════════════════════════════════════════
 # Evolution Enums & Types
@@ -281,6 +282,7 @@ class SelfEvolveCore:
     
     # ─── Main Evolution Loop ────────────────────────────
     
+    @timeout_guardian(seconds=300)
     def evolve(
         self,
         task: str,

@@ -40,6 +40,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass, field
 
+from ai_earth.safety.timeout import timeout_guardian
+
 logger = logging.getLogger("ai_earth.model_router")
 
 
@@ -57,6 +59,11 @@ class ProviderType(str, Enum):
     DEEPSEEK = "deepseek"
     OPENROUTER = "openrouter"
     GITHUB = "github"
+    NVIDIA = "nvidia"
+    SILICONFLOW = "siliconflow"
+    MISTRAL = "mistral"
+    CLOUDFLARE = "cloudflare"
+    LLM7 = "llm7"
     CUSTOM = "custom"
 
 
@@ -163,7 +170,14 @@ class ModelRegistry:
             ModelInfo("mixtral-8x7b-32768", ProviderType.GROQ, 32768, True, False, True, 0.00024, 0.00024, 32768),
             # DeepSeek
             ModelInfo("deepseek-chat", ProviderType.DEEPSEEK, 8192, True, False, True, 0.00014, 0.00028, 64000, ["deepseek-v3"]),
-            ModelInfo("deepseek-reasoner", ProviderType.DEEPSEEK, 8192, False, False, False, 0.00055, 0.00219, 64000, ["deepseek-r1"]),
+            ModelInfo("deepseek-reasoner", ProviderType.DEEPSEEK, 8192, False, False, False, 0.00055, 0.0219, 64000, ["deepseek-r1"]),
+            # Nvidia
+            ModelInfo("nvidia/llama-3.1-405b", ProviderType.NVIDIA, 4096, True, False, True),
+            # Mistral
+            ModelInfo("mistral-large-latest", ProviderType.MISTRAL, 8192, True, False, True),
+            ModelInfo("pixtral-12b-latest", ProviderType.MISTRAL, 8192, True, True, True),
+            # Silicon Flow
+            ModelInfo("deepseek-ai/DeepSeek-V3", ProviderType.SILICONFLOW, 8192, True, False, True),
         ]
         for m in builtin:
             self._models[m.name] = m
@@ -329,6 +343,7 @@ class ModelRouter:
 
     # ─── Chat (Main Interface) ────────────────────────
 
+    @timeout_guardian(seconds=90)
     def chat(
         self,
         model: str = None,
@@ -632,6 +647,11 @@ class ModelRouter:
         """Search the web using Serper API."""
         from ai_earth.llm_pool import web_search
         return web_search(query, num_results)
+
+    def crawl(self, url: str) -> str:
+        """Crawl a URL using Firecrawl."""
+        from ai_earth.llm_pool import crawl_url
+        return crawl_url(url)
 
 
 # ═════════════════════════════════════════════════════════

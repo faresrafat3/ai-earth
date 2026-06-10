@@ -872,7 +872,7 @@ def _extend_aiearth():
                 "source": "AI Earth Platform",
                 "files": 2,
                 "lines": 1240,
-                "components": "Unified LLM Interface (7 providers, caching, cost tracking)",
+                "components": "Unified LLM Interface (12 providers, caching, cost tracking)",
                 "tests": 47,
             },
             "langgraph": {
@@ -896,12 +896,19 @@ def _extend_aiearth():
                 "components": "Event-Driven Runtime + 4 Team Types + Agents + Tools + Memory",
                 "tests": 55,
             },
+            "research_discovery": {
+                "source": "AI Earth Intelligence Aggregator",
+                "files": 1,
+                "lines": 65,
+                "components": "Arxiv/OpenReview Search + Firecrawl Scraper + LLM Summarizer",
+                "tests": 0,
+            }
         }
         info["totals"] = {
-            "files": 836,
-            "lines": 197836,
+            "files": 837,
+            "lines": 197901,
             "tests": 542,
-            "papers": 7,
+            "papers": 8,
         }
         
         # Add cross-piece bridge status

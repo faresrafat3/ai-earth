@@ -41,6 +41,13 @@ class ProviderType(str, Enum):
     GOOGLE = "google"
     SERPER = "serper"
     OLLAMA = "ollama"
+    NVIDIA = "nvidia"
+    SILICONFLOW = "siliconflow"
+    MISTRAL = "mistral"
+    CLOUDFLARE = "cloudflare"
+    FIRECRAWL = "firecrawl"
+    TINKER = "tinker"
+    LLM7 = "llm7"
 
 
 # ═════════════════════════════════════════════════════════
@@ -371,6 +378,43 @@ def get_key_pool() -> KeyPool:
         account = google_accounts[g_idx - 1] if g_idx - 1 < len(google_accounts) else f"gaccount_{g_idx}"
         pool.add_key(ProviderType.GOOGLE, key_val, account=account)
 
+    # ─── New Providers ──────────────────────────────────
+    
+    # Nvidia NIM
+    nvidia_key = env.get('NVIDIA_NIM_KEY')
+    if nvidia_key:
+        pool.add_key(ProviderType.NVIDIA, nvidia_key, account="nvidia_main")
+
+    # Silicon Flow
+    sf_key = env.get('SILICON_FLOW_KEY')
+    if sf_key:
+        pool.add_key(ProviderType.SILICONFLOW, sf_key, account="sf_main")
+
+    # Mistral
+    mistral_key = env.get('MISTRAL_KEY')
+    if mistral_key:
+        pool.add_key(ProviderType.MISTRAL, mistral_key, account="mistral_main")
+
+    # Cloudflare
+    cf_token = env.get('CLOUDFLARE_TOKEN')
+    if cf_token:
+        pool.add_key(ProviderType.CLOUDFLARE, cf_token, account="cloudflare_main")
+
+    # Firecrawl
+    fc_key = env.get('FIRECRAWL_KEY')
+    if fc_key:
+        pool.add_key(ProviderType.FIRECRAWL, fc_key, account="firecrawl_main")
+
+    # Tinker
+    tink_key = env.get('TINKER_KEY')
+    if tink_key:
+        pool.add_key(ProviderType.TINKER, tink_key, account="tink_main")
+
+    # LLM7
+    llm7_key = env.get('LLM7_KEY')
+    if llm7_key:
+        pool.add_key(ProviderType.LLM7, llm7_key, account="llm7_main")
+
     logger.info(
         f"Key Pool initialized: "
         f"{len(pool._by_provider.get(ProviderType.OPENROUTER, []))} OpenRouter, "
@@ -494,6 +538,76 @@ def _call_google(
     return resp.json(), resp.status_code, dict(resp.headers)
 
 
+def _call_nvidia(
+    api_key: str,
+    model: str,
+    messages: List[Dict],
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    **kwargs,
+) -> Tuple[Dict, int, Dict]:
+    """Call Nvidia NIM API (OpenAI-compatible)."""
+    import requests as req
+    url = "https://integrate.api.nvidia.com/v1/chat/completions"
+    payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    resp = req.post(url, headers=headers, json=payload, timeout=60)
+    return resp.json(), resp.status_code, dict(resp.headers)
+
+
+def _call_siliconflow(
+    api_key: str,
+    model: str,
+    messages: List[Dict],
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    **kwargs,
+) -> Tuple[Dict, int, Dict]:
+    """Call Silicon Flow API (OpenAI-compatible)."""
+    import requests as req
+    url = "https://api.siliconflow.cn/v1/chat/completions"
+    payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    resp = req.post(url, headers=headers, json=payload, timeout=60)
+    return resp.json(), resp.status_code, dict(resp.headers)
+
+
+def _call_mistral(
+    api_key: str,
+    model: str,
+    messages: List[Dict],
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    **kwargs,
+) -> Tuple[Dict, int, Dict]:
+    """Call Mistral API (OpenAI-compatible)."""
+    import requests as req
+    url = "https://api.mistral.ai/v1/chat/completions"
+    payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    resp = req.post(url, headers=headers, json=payload, timeout=60)
+    return resp.json(), resp.status_code, dict(resp.headers)
+
+
+def _call_llm7(
+    api_key: str,
+    model: str,
+    messages: List[Dict],
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    **kwargs,
+) -> Tuple[Dict, int, Dict]:
+    """Call LLM7.io API."""
+    import requests as req
+    # LLM7 uses a different structure usually, but let's assume OpenAI-compatible for now
+    # If it fails, we'll refine.
+    url = "https://api.llm7.io/v1/chat/completions"
+    payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    resp = req.post(url, headers=headers, json=payload, timeout=60)
+    return resp.json(), resp.status_code, dict(resp.headers)
+
+
 def call_llm(
     model: str,
     messages: List[Dict],
@@ -553,6 +667,26 @@ def call_llm(
                     key.api_key, provider_model, messages,
                     temperature=temperature, max_tokens=max_tokens, **kwargs,
                 )
+            elif prov == ProviderType.NVIDIA:
+                data, status, resp_headers = _call_nvidia(
+                    key.api_key, provider_model, messages,
+                    temperature=temperature, max_tokens=max_tokens, **kwargs,
+                )
+            elif prov == ProviderType.SILICONFLOW:
+                data, status, resp_headers = _call_siliconflow(
+                    key.api_key, provider_model, messages,
+                    temperature=temperature, max_tokens=max_tokens, **kwargs,
+                )
+            elif prov == ProviderType.MISTRAL:
+                data, status, resp_headers = _call_mistral(
+                    key.api_key, provider_model, messages,
+                    temperature=temperature, max_tokens=max_tokens, **kwargs,
+                )
+            elif prov == ProviderType.LLM7:
+                data, status, resp_headers = _call_llm7(
+                    key.api_key, provider_model, messages,
+                    temperature=temperature, max_tokens=max_tokens, **kwargs,
+                )
             else:
                 continue
 
@@ -603,12 +737,24 @@ def _resolve_provider(model: str) -> ProviderType:
         return ProviderType.GITHUB
     if model_lower.startswith("google/"):
         return ProviderType.GOOGLE
+    if model_lower.startswith("nvidia/"):
+        return ProviderType.NVIDIA
+    if model_lower.startswith("mistral/"):
+        return ProviderType.MISTRAL
+    if model_lower.startswith("sf/"):
+        return ProviderType.SILICONFLOW
+    if model_lower.startswith("llm7/"):
+        return ProviderType.LLM7
     if model_lower.startswith("ollama/"):
         return ProviderType.OLLAMA
 
     # Google models
     if "gemini" in model_lower:
         return ProviderType.OPENROUTER  # OpenRouter supports Gemini
+
+    # Mistral models
+    if "mistral" in model_lower or "mixtral" in model_lower:
+        return ProviderType.MISTRAL
 
     # Everything else goes through OpenRouter
     return ProviderType.OPENROUTER
@@ -617,9 +763,13 @@ def _resolve_provider(model: str) -> ProviderType:
 def _get_provider_chain(primary: ProviderType) -> List[ProviderType]:
     """Get the fallback chain for a provider."""
     chains = {
-        ProviderType.OPENROUTER: [ProviderType.OPENROUTER, ProviderType.GITHUB, ProviderType.GOOGLE],
+        ProviderType.OPENROUTER: [ProviderType.OPENROUTER, ProviderType.GITHUB, ProviderType.GOOGLE, ProviderType.NVIDIA, ProviderType.SILICONFLOW, ProviderType.MISTRAL],
         ProviderType.GITHUB: [ProviderType.GITHUB, ProviderType.OPENROUTER, ProviderType.GOOGLE],
         ProviderType.GOOGLE: [ProviderType.GOOGLE, ProviderType.OPENROUTER, ProviderType.GITHUB],
+        ProviderType.NVIDIA: [ProviderType.NVIDIA, ProviderType.OPENROUTER, ProviderType.GITHUB],
+        ProviderType.SILICONFLOW: [ProviderType.SILICONFLOW, ProviderType.OPENROUTER, ProviderType.GITHUB],
+        ProviderType.MISTRAL: [ProviderType.MISTRAL, ProviderType.OPENROUTER, ProviderType.GITHUB],
+        ProviderType.LLM7: [ProviderType.LLM7, ProviderType.OPENROUTER, ProviderType.GITHUB],
         ProviderType.OLLAMA: [ProviderType.OLLAMA],
         ProviderType.SERPER: [ProviderType.SERPER],
     }
@@ -742,10 +892,11 @@ def _parse_response(data: Dict, provider: ProviderType, model: str, start_time: 
 
 
 # ═════════════════════════════════════════════════════════
-# Web Search (Serper)
+# Web Search & Crawling Tools
 # ═════════════════════════════════════════════════════════
 
 SERPER_KEY = os.environ.get("SERPER_KEY", "") or _load_env_file().get("SERPER_KEY", "")
+FIRECRAWL_KEY = os.environ.get("FIRECRAWL_KEY", "") or _load_env_file().get("FIRECRAWL_KEY", "")
 
 
 def web_search(query: str, num_results: int = 5) -> List[Dict[str, str]]:
@@ -775,6 +926,38 @@ def web_search(query: str, num_results: int = 5) -> List[Dict[str, str]]:
             "snippet": item.get("snippet", ""),
         })
     return results
+
+
+def crawl_url(url: str) -> str:
+    """
+    Crawl a URL using Firecrawl API.
+    Returns the markdown content.
+    """
+    import requests as req
+    
+    if not FIRECRAWL_KEY:
+        return "Firecrawl API key not configured."
+
+    headers = {
+        "Authorization": f"Bearer {FIRECRAWL_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    # Try Firecrawl scrape endpoint
+    try:
+        resp = req.post(
+            "https://api.firecrawl.dev/v1/scrape",
+            headers=headers,
+            json={"url": url, "formats": ["markdown"]},
+            timeout=30
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("success"):
+            return data.get("data", {}).get("markdown", "")
+        return f"Firecrawl error: {data.get('error')}"
+    except Exception as e:
+        return f"Crawl failed: {str(e)}"
 
 
 # ═════════════════════════════════════════════════════════
