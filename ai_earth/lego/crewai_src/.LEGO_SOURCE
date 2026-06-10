@@ -1,0 +1,18 @@
+Source: https://github.com/crewAIInc/crewAI (22K+ ⭐)
+Version: 1.14.6
+Description: Multi-Agent Orchestration Framework
+Extracted: Agent, Task, Crew, Process, Flow, Memory, Knowledge, Tools, State, Hooks
+Modules:
+  - agent/: Core agent definition (6 files)
+  - agents/: Agent builder, executor, adapters, parser (29 files)
+  - task.py + tasks/: Task definition and guardrails (7 files)
+  - crew.py + crews/: Crew orchestration (4 files)
+  - flow/: Flow orchestration with persistence (25 files)
+  - memory/: Unified memory with storage backends (13 files)
+  - knowledge/: Knowledge management (20 files)
+  - tools/: Tool base classes (18 files)
+  - types/: Type definitions (6 files)
+  - state/: State management with checkpoints (10 files)
+  - hooks/: LLM and tool hooks (6 files)
+  - core/: Core providers (4 files)
+  - security/: Security configuration (4 files)
