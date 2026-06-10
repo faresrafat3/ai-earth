@@ -107,6 +107,11 @@ class ComposeRequest(BaseModel):
     crew_agents: Optional[List[str]] = Field(None, description="Crew agent names")
     memory_store: Optional[str] = Field(None, description="Memory store to use")
 
+class ResearchRequest(BaseModel):
+    """Request for intelligence discovery."""
+    topic: str = Field(..., description="Research topic", min_length=1)
+    count: int = Field(3, description="Number of papers to aggregate", ge=1, le=10)
+
 
 # ═════════════════════════════════════════════════════════
 # App Initialization
@@ -114,8 +119,8 @@ class ComposeRequest(BaseModel):
 
 app = FastAPI(
     title="🌍 AI Earth — The Living Intelligence Ecosystem",
-    description="Self-evolving AI agent platform built from LEGO pieces extracted from research papers",
-    version="0.2.0",
+    description="Self-evolving AI intelligence aggregation platform built from LEGO pieces extracted from research papers",
+    version="0.4.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -194,9 +199,30 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "version": "0.2.0",
+        "version": "0.4.0",
         "timestamp": time.time(),
     }
+
+
+# ═════════════════════════════════════════════════════════
+# Research Discovery Endpoints
+# ═════════════════════════════════════════════════════════
+
+@app.post("/research/discover", tags=["Research"])
+async def discover_intelligence(req: ResearchRequest):
+    """Discover and aggregate intelligence on a topic."""
+    earth = get_earth()
+    try:
+        # Use the capability through orchestrator
+        from ai_earth.capabilities.research_discovery import ResearchDiscovery
+        rd = ResearchDiscovery(router=get_router())
+        
+        # Override count if needed (aggregate_intelligence uses 3 by default, let's make it flexible)
+        # For now, let's just use the direct method we added to AIEarth
+        result = earth.discover_intelligence(req.topic)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ═════════════════════════════════════════════════════════

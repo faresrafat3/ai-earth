@@ -66,11 +66,11 @@ def get_router():
 # ═════════════════════════════════════════════════════════
 
 st.sidebar.title("🌍 AI Earth")
-st.sidebar.caption("The Living Intelligence Ecosystem v0.2.0")
+st.sidebar.caption("The Living Intelligence Ecosystem v0.4.0")
 
 page = st.sidebar.radio(
     "Navigate",
-    ["🏠 Dashboard", "🧬 Evolve", "🧱 LEGO Pieces", "💬 Chat"],
+    ["🏠 Dashboard", "🧬 Evolve", "🔍 Research Discovery", "🧱 LEGO Pieces", "💬 Chat"],
     label_visibility="collapsed",
 )
 
@@ -86,7 +86,8 @@ except Exception:
     pass
 
 st.sidebar.divider()
-st.sidebar.caption("542 tests ✅ | 7 papers | 197K lines")
+st.sidebar.caption("592 tests ✅ | 8 papers | 197K lines")
+st.sidebar.caption("21 API Keys 🔑 | v0.4.0")
 
 # ═════════════════════════════════════════════════════════
 # Page: Dashboard
@@ -94,7 +95,7 @@ st.sidebar.caption("542 tests ✅ | 7 papers | 197K lines")
 
 if page == "🏠 Dashboard":
     st.title("🌍 AI Earth — Dashboard")
-    st.markdown("Self-evolving AI agent platform built from **7 LEGO pieces** extracted from research papers.")
+    st.markdown("Intelligence Aggregation Platform built from **8 LEGO pieces** extracted verbatim from research papers.")
     
     # Top metrics
     earth = get_earth()
@@ -102,7 +103,7 @@ if page == "🏠 Dashboard":
     totals = info["totals"]
     
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("📚 Papers", totals["papers"])
+    col1.metric("📚 Papers/LEGO", totals["papers"])
     col2.metric("📁 Files", totals["files"])
     col3.metric("📝 Lines", f"{totals['lines']:,}")
     col4.metric("✅ Tests", totals["tests"])
@@ -110,7 +111,7 @@ if page == "🏠 Dashboard":
     st.divider()
     
     # LEGO Pieces Table
-    st.subheader("🧱 LEGO Pieces")
+    st.subheader("🧱 LEGO Pieces (Extracted Research)")
     
     pieces_data = []
     for name, p in info["lego_pieces"].items():
@@ -165,18 +166,56 @@ if page == "🏠 Dashboard":
         - **EvoAgentX** — Workflow Engine + 6 Optimizers
         - **DSPy** — Signatures + Predictors + Teleprompters
         - **Mem0** — Memory + Embeddings + Vector Stores
-        - **Model Router** — Unified LLM (7 providers)
+        - **Model Router** — Unified LLM (12 providers)
         - **LangGraph** — Graph Engine + Pregel
         - **CrewAI** — Multi-Agent Crews + Flow
-        - **AutoGen** — Event-Driven Multi-Agent (Microsoft)
+        - **AutoGen** — Event-Driven Runtime
+        - **Research Discovery** — Intelligence Aggregator
         
-        **🌐 API:** 17 REST endpoints (FastAPI)
+        **🌐 API:** 19 REST endpoints (FastAPI)
         """)
     
     # Platform stats
     st.divider()
     st.subheader("📊 Platform Stats")
     st.code(earth.platform_stats(), language=None)
+
+
+# ═════════════════════════════════════════════════════════
+# Page: Research Discovery
+# ═════════════════════════════════════════════════════════
+
+elif page == "🔍 Research Discovery":
+    st.title("🔍 Intelligence Aggregator")
+    st.markdown("Discover and aggregate AI research from **Arxiv**, **OpenReview**, and the web.")
+    
+    col_res1, col_res2 = st.columns([2, 1])
+    
+    with col_res1:
+        topic = st.text_input("🔍 Topic to Research", "Large Language Model Agents 2025")
+        count = st.slider("Count", 1, 10, 3)
+    
+    with col_res2:
+        st.info("Uses **Serper** for search and **Firecrawl** for scraping real research papers.")
+
+    if st.button("🚀 Discover & Aggregate", type="primary", use_container_width=True):
+        with st.spinner(f"Searching and aggregating intelligence on '{topic}'..."):
+            try:
+                earth = get_earth()
+                result = earth.discover_intelligence(topic)
+                
+                st.divider()
+                st.success(f"Aggregated {result['total_papers']} intelligence pieces!")
+                
+                for i, piece in enumerate(result["intelligence_pieces"]):
+                    with st.expander(f"📄 {piece['title']}", expanded=(i==0)):
+                        st.markdown(f"**Source:** {piece['url']}")
+                        st.markdown("---")
+                        st.markdown("**Summary:**")
+                        st.markdown(piece["summary"])
+                        st.caption(f"Extraction method: {piece['source']}")
+            except Exception as e:
+                st.error(f"Discovery failed: {e}")
 
 
 # ═════════════════════════════════════════════════════════

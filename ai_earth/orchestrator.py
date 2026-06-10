@@ -918,9 +918,16 @@ def _extend_aiearth():
                 "graphs": self._bridge.list_graphs(),
                 "agent_roles": self._bridge.list_agent_roles(),
                 "crews": list(self._bridge._crews.keys()),
+                "capabilities": ["research_discovery"]
             }
         
         return info
+
+    def discover_intelligence(self, topic: str) -> Dict[str, Any]:
+        """Discover and aggregate intelligence on a topic."""
+        from ai_earth.capabilities.research_discovery import ResearchDiscovery
+        rd = ResearchDiscovery(router=self.bridge().get_router())
+        return rd.aggregate_intelligence(topic)
     
     def platform_stats(self) -> str:
         """Human-readable full platform statistics."""
