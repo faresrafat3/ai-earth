@@ -928,6 +928,31 @@ def _extend_aiearth():
         from ai_earth.capabilities.research_discovery import ResearchDiscovery
         rd = ResearchDiscovery(router=self.bridge().get_router())
         return rd.aggregate_intelligence(topic)
+
+    def digest_research(self, paper_url: str, name: str) -> Dict[str, Any]:
+        """Extract DNA and generate a LEGO stub from a paper URL."""
+        from ai_earth.capabilities.research_discovery import ResearchDiscovery
+        from ai_earth.capabilities.dna_extractor import DNAExtractor
+        
+        router = self.bridge().get_router()
+        rd = ResearchDiscovery(router=router)
+        de = DNAExtractor(router=router)
+        
+        # 1. Crawl
+        content = router.crawl(paper_url)
+        
+        # 2. Extract DNA
+        dna = de.extract_dna(content)
+        
+        # 3. Generate Stub
+        stub = de.generate_lego_stub(dna, name)
+        
+        return {
+            "name": name,
+            "url": paper_url,
+            "dna": dna,
+            "lego_stub": stub
+        }
     
     def platform_stats(self) -> str:
         """Human-readable full platform statistics."""

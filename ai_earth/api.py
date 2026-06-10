@@ -112,6 +112,11 @@ class ResearchRequest(BaseModel):
     topic: str = Field(..., description="Research topic", min_length=1)
     count: int = Field(3, description="Number of papers to aggregate", ge=1, le=10)
 
+class DigestRequest(BaseModel):
+    """Request to digest a specific paper."""
+    url: str = Field(..., description="Paper URL")
+    name: str = Field(..., description="Desired LEGO piece name")
+
 
 # ═════════════════════════════════════════════════════════
 # App Initialization
@@ -194,20 +199,6 @@ async def platform_stats():
     }
 
 
-@app.get("/health", tags=["Platform"])
-async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "version": "0.4.0",
-        "timestamp": time.time(),
-    }
-
-
-# ═════════════════════════════════════════════════════════
-# Research Discovery Endpoints
-# ═════════════════════════════════════════════════════════
-
 @app.post("/research/discover", tags=["Research"])
 async def discover_intelligence(req: ResearchRequest):
     """Discover and aggregate intelligence on a topic."""
@@ -220,6 +211,16 @@ async def discover_intelligence(req: ResearchRequest):
         # Override count if needed (aggregate_intelligence uses 3 by default, let's make it flexible)
         # For now, let's just use the direct method we added to AIEarth
         result = earth.discover_intelligence(req.topic)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/research/digest", tags=["Research"])
+async def digest_paper(req: DigestRequest):
+    """Digest a paper: extract DNA and generate LEGO code."""
+    earth = get_earth()
+    try:
+        result = earth.digest_research(req.url, req.name)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

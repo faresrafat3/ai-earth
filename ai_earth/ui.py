@@ -217,6 +217,32 @@ elif page == "🔍 Research Discovery":
             except Exception as e:
                 st.error(f"Discovery failed: {e}")
 
+    st.divider()
+    st.subheader("🧬 LEGO DNA Extractor (Digester)")
+    st.markdown("Enter a paper URL to extract its structural logic and generate LEGO code.")
+    
+    col_dig1, col_dig2 = st.columns([2, 1])
+    with col_dig1:
+        paper_url = st.text_input("Paper URL (Arxiv/OpenReview)", "https://arxiv.org/html/2501.12941v1")
+    with col_dig2:
+        lego_name = st.text_input("LEGO Piece Name", "NewResearchPiece")
+
+    if st.button("🧪 Digest Paper & Generate LEGO", type="secondary", use_container_width=True):
+        with st.spinner("Digesting research... this may take up to 2 minutes."):
+            try:
+                earth = get_earth()
+                result = earth.digest_research(paper_url, lego_name)
+                
+                st.success(f"Successfully digested {lego_name}!")
+                
+                tab1, tab2 = st.tabs(["🧬 Agentic DNA", "🐍 Generated LEGO Code"])
+                with tab1:
+                    st.json(result["dna"])
+                with tab2:
+                    st.code(result["lego_stub"], language="python")
+            except Exception as e:
+                st.error(f"Digestion failed: {e}")
+
 
 # ═════════════════════════════════════════════════════════
 # Page: Evolve
