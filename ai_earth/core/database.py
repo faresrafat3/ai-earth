@@ -1,15 +1,13 @@
 """
-📜 The Ledger of Earth — OmniLog Database
+📜 The Ledger of Earth — OmniLog Database v2.1
 ═══════════════════════════════════════════════════════════
-Centralized logging and data collection system for all platform 
-activities. Designed for AI training and evolution tracking.
+Fixed for Dictionary serialization and Deep Intelligence.
 """
 
 import sqlite3
 import json
 import time
 import os
-from typing import Any, Dict, Optional
 
 class OmniLog:
     def __init__(self, db_path="/home/user/ai-earth/data/earth_ledger.db"):
@@ -20,81 +18,48 @@ class OmniLog:
     def _init_db(self):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            # Table for LLM Interactions (Training Data Goldmine)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS research_intel (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    paper_name TEXT, url TEXT, credibility_score REAL,
+                    technical_logic TEXT, experimental_results TEXT,
+                    completeness_analysis TEXT, code_stub TEXT
+                )
+            """)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS llm_interactions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    model TEXT,
-                    provider TEXT,
-                    prompt TEXT,
-                    response TEXT,
-                    tokens INTEGER,
-                    cost REAL,
-                    latency_ms REAL,
-                    context_metadata TEXT
-                )
-            """)
-            # Table for Evolution Cycles
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS evolution_logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    task TEXT,
-                    iteration INTEGER,
-                    phase TEXT,
-                    observation TEXT,
-                    plan TEXT,
-                    result TEXT,
-                    score REAL
-                )
-            """)
-            # Table for Synapse Thinking (High-Order Logic)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS synapse_thoughts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    task TEXT,
-                    thought_process TEXT,
-                    breakthrough_insight TEXT
+                    model TEXT, prompt TEXT, response TEXT, tokens INTEGER, latency_ms REAL
                 )
             """)
             conn.commit()
 
-    def log_llm(self, model: str, provider: str, prompt: str, response: str, usage: dict, latency: float, metadata: dict = None):
+    def log_research_full_cycle(self, data: dict):
+        """سجل كامل للدورة الاستخبارية للبحث مع تحويل الـ Dicts لنصوص"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO llm_interactions (model, provider, prompt, response, tokens, cost, latency_ms, context_metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (model, provider, prompt, response, usage.get('total_tokens', 0), 0.0, latency, json.dumps(metadata or {})))
-            conn.commit()
-        # Also save to JSONL for easy AI training export
-        self._append_jsonl("llm_training_data.jsonl", {
-            "prompt": prompt,
-            "completion": response,
-            "metadata": metadata
-        })
-
-    def log_evolution(self, task: str, iteration: int, phase: str, observation: str, plan: str, result: str, score: float):
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO evolution_logs (task, iteration, phase, observation, plan, result, score)
+                INSERT INTO research_intel 
+                (paper_name, url, credibility_score, technical_logic, experimental_results, completeness_analysis, code_stub)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (task, iteration, phase, observation, plan, result, score))
+            """, (
+                data['name'], data['url'], float(data['credibility']), 
+                json.dumps(data['logic']), json.dumps(data['experiments']), 
+                str(data['completeness']), data['code']
+            ))
             conn.commit()
+        self._append_jsonl("research_training_set.jsonl", data)
 
-    def log_synapse(self, task: str, process: str, insight: str):
+    def log_llm(self, model, provider, prompt, response, usage, latency, metadata=None):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO synapse_thoughts (task, thought_process, breakthrough_insight)
-                VALUES (?, ?, ?)
-            """, (task, process, insight))
+            cursor.execute("INSERT INTO llm_interactions (model, prompt, response, tokens, latency_ms) VALUES (?, ?, ?, ?, ?)",
+                           (model, prompt, response, usage.get('total_tokens', 0), latency))
             conn.commit()
 
-    def _append_jsonl(self, filename: str, data: dict):
+    def _append_jsonl(self, filename, data):
         path = f"/home/user/ai-earth/data/vault/{filename}"
         with open(path, "a") as f:
             f.write(json.dumps(data) + "\n")
@@ -102,11 +67,8 @@ class OmniLog:
     def get_stats(self):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM llm_interactions")
-            llm_count = cursor.fetchone()[0]
-            cursor.execute("SELECT COUNT(*) FROM evolution_logs")
-            evo_count = cursor.fetchone()[0]
-            return {"total_llm_calls": llm_count, "total_evolution_steps": evo_count}
+            cursor.execute("SELECT COUNT(*) FROM research_intel")
+            research_count = cursor.fetchone()[0]
+            return {"intel_cycles": research_count}
 
-# Global singleton
 ledger = OmniLog()
