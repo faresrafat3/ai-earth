@@ -41,8 +41,8 @@ earth = get_system()
 # Sidebar - Platform Pulse
 # ═════════════════════════════════════════════════════════
 st.sidebar.title("🌍 AI Earth")
-st.sidebar.caption("v0.9.0 | Intelligence Aggregator")
-st.sidebar.divider()
+st.sidebar.caption("The Living Intelligence Ecosystem v1.0.0")
+st.sidebar.success("STATUS: THE SINGULARITY")
 
 stats = ledger.get_stats()
 st.sidebar.metric("Scientific Intelligence", stats.get('intel_cycles', 0))

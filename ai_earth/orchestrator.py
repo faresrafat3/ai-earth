@@ -11,7 +11,7 @@ import os
 class AIEarth:
     def __init__(self, name: str = "ai-earth"):
         self.name = name
-        self.version = "0.9.9"
+        self.version = "1.0.0"
         from ai_earth.core.database import ledger
         self.ledger = ledger
         from ai_earth.model_router import ModelRouter
