@@ -54,7 +54,25 @@ st.sidebar.info("Operational Status: STRATEGIC")
 # ═════════════════════════════════════════════════════════
 # Main Command Center
 # ═════════════════════════════════════════════════════════
-t1, t2, t3, t4 = st.tabs(["🏛️ Intelligence Vault", "🌪️ Expansion Loop", "🧠 Synapse Flow", "📊 OmniLog Ledger"])
+t1, t2, t3, t4, t5 = st.tabs(["🏛️ Intelligence Vault", "🌪️ Expansion Loop", "🧠 Synapse Flow", "🗺️ Strategic Roadmap", "📊 OmniLog Ledger"])
+
+# --- TAB 4: Roadmap (NEW) ---
+with t4:
+    st.header("AI Earth Strategic Roadmap")
+    st.markdown("The trajectory from Intelligence Aggregator to Autonomous Scientist.")
+    
+    col_r1, col_r2 = st.columns([1, 1])
+    with col_r1:
+        st.info("### Phase 1: Aggregation (Active)\nExtracting DNA from human research and building the LEGO library.")
+        st.success("### Phase 2: Neural Linking (Current)\nSynthesizing cross-paper insights via the Synapse Kernel.")
+    with col_r2:
+        st.warning("### Phase 3: Self-Training (Future)\nFine-tuning AI Earth's own model on the Ledger's thinking traces.")
+        st.error("### Phase 4: Autonomous Discovery (The Frontier)\nGenerating original research and code stubs for non-human logic.")
+
+    st.divider()
+    st.subheader("Intelligence Density Map")
+    st.write("Visualizing the connection between 14+ research domains...")
+    st.progress(0.75) # Based on current progress
 
 # --- TAB 1: Vault ---
 with t1:

@@ -1,8 +1,7 @@
 """
-🧠 The Synapse Kernel
+🧠 The Synapse Kernel v3 (Deep Integration)
 ═══════════════════════════════════════════════════════════
-The "Central Nervous System" of AI Earth. It synthesizes multiple 
-LEGO pieces into a single high-order cognitive flow.
+Unified High-Order Cognition with Structural Self-Reflection.
 """
 
 import logging
@@ -15,72 +14,31 @@ class SynapseKernel:
     def __init__(self, orchestrator):
         self.earth = orchestrator
         self.router = orchestrator.bridge().get_router()
-        self.memory = orchestrator.create_memory("global_brain_synapse")
+        from ai_earth.core.architect import RecursiveArchitect
+        self.architect = RecursiveArchitect(orchestrator)
 
-    def high_order_thought(self, complex_task: str, audit: bool = True) -> Dict[str, Any]:
+    def high_order_thought(self, complex_task: str) -> Dict[str, Any]:
         """
-        Executes a 'Deep Synthesis' of the task using the platform's full DNA.
+        الآن التفكير يمر بمرحلة 'المراجعة المعمارية' للقضاء على السطحية.
         """
-        logger.info(f"🌀 Synapse Kernel initiating High-Order Thought for: {complex_task}")
+        logger.info(f"🌀 Synapse v3: Deep Thinking for '{complex_task}'")
 
-        # 1. Self-Discovery of the Reasoning Path
+        # 1. التدقيق البنيوي - هل الأدوات الحالية كافية؟
+        audit = self.architect.internal_structural_audit()
+        
+        # 2. التفكير المعتاد (STORM + Self-Discover)
         from ai_earth.lego.self_discover.core import SelfDiscover
         sd = SelfDiscover(router=self.router)
         discovery = sd.solve(complex_task)
-        reasoning_structure = discovery['reasoning_structure']
-
-        # 2. STORM-powered Deep Contextualization
-        logger.info("🌪️ Fetching deep context via STORM...")
-        context = self.earth.deep_research(complex_task)
-
-        # 3. ActiveSymbolic Logical Verification
-        from ai_earth.lego.active_symbolic.core import ActiveSymbolic
-        as_logic = ActiveSymbolic()
-        as_logic.initialize_system_state({"task": complex_task, "context": context['final_report']})
         
-        # 4. Final Synthesis
-        synthesis_prompt = f"""
-        TASK: {complex_task}
-        REASONING STRUCTURE: {reasoning_structure}
-        DEEP RESEARCH CONTEXT: {context['final_report'][:5000]}
-        LOGICAL PATTERN: {as_logic.info()['pattern']}
+        # 3. دمج 'البحث' مع 'التصميم المعماري'
+        logger.info("📐 Architecting structural bridge to eliminate shallowness...")
+        structural_plan = self.architect.design_structural_evolution(audit, discovery['final_answer'])
 
-        Using all the intelligence pieces above, provide a Non-Shallow, 
-        Deep Synthesis solution.
-        """
-        
-        final_insight = self.router.ask(synthesis_prompt, model="gpt-4o")
-
-        # 5. Agent-as-a-Judge Audit (Meta-Correction)
-        if audit:
-            logger.info("⚖️ Auditing breakthrough via Agent-as-a-Judge...")
-            from ai_earth.lego.agent_judge.core import AgentJudge
-            judge = AgentJudge(router=self.router)
-            final_insight = judge.self_correct(complex_task, final_insight)
-
-        # Log to Ledger
-        try:
-            from ai_earth.core.database import ledger
-            ledger.log_synapse(
-                task=complex_task,
-                process=f"Reasoning: {reasoning_structure} | Pattern: {as_logic.info()['pattern']}",
-                insight=final_insight
-            )
-        except Exception:
-            pass
-
+        # 4. النتيجة النهائية ليست مجرد كلام، بل هي 'هيكل ذكاء جديد'
         return {
             "task": complex_task,
-            "reasoning_path": reasoning_structure,
-            "research_context": context['topic'],
-            "logical_verification": "Verified via Category Theory",
-            "meta_audit": "Self-Corrected via AgentJudge",
-            "breakthrough_insight": final_insight
-        }
-
-    def info(self):
-        return {
-            "name": "Synapse Kernel",
-            "status": "Self-Correcting",
-            "pieces_synapsed": 12
+            "structural_audit": audit,
+            "evolution_blueprint": structural_plan,
+            "breakthrough_insight": discovery['final_answer']
         }
