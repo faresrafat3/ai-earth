@@ -1,7 +1,6 @@
 """
-📜 The Ledger of Earth — OmniLog Database v2.1
+📜 The Ledger of Earth — OmniLog Database v2.2 (Unified)
 ═══════════════════════════════════════════════════════════
-Fixed for Dictionary serialization and Deep Intelligence.
 """
 
 import sqlite3
@@ -18,57 +17,38 @@ class OmniLog:
     def _init_db(self):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS research_intel (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    paper_name TEXT, url TEXT, credibility_score REAL,
-                    technical_logic TEXT, experimental_results TEXT,
-                    completeness_analysis TEXT, code_stub TEXT
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS llm_interactions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    model TEXT, prompt TEXT, response TEXT, tokens INTEGER, latency_ms REAL
-                )
-            """)
+            cursor.execute("CREATE TABLE IF NOT EXISTS synapse_thoughts (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, thought_process TEXT, breakthrough_insight TEXT)")
+            cursor.execute("CREATE TABLE IF NOT EXISTS llm_interactions (id INTEGER PRIMARY KEY AUTOINCREMENT, model TEXT, prompt TEXT, response TEXT, tokens INTEGER, latency_ms REAL)")
+            cursor.execute("CREATE TABLE IF NOT EXISTS research_intel (id INTEGER PRIMARY KEY AUTOINCREMENT, paper_name TEXT, credibility_score REAL, technical_logic TEXT, code_stub TEXT)")
             conn.commit()
 
-    def log_research_full_cycle(self, data: dict):
-        """سجل كامل للدورة الاستخبارية للبحث مع تحويل الـ Dicts لنصوص"""
+    def log_synapse(self, task, process, insight):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO research_intel 
-                (paper_name, url, credibility_score, technical_logic, experimental_results, completeness_analysis, code_stub)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                data['name'], data['url'], float(data['credibility']), 
-                json.dumps(data['logic']), json.dumps(data['experiments']), 
-                str(data['completeness']), data['code']
-            ))
+            cursor.execute("INSERT INTO synapse_thoughts (task, thought_process, breakthrough_insight) VALUES (?, ?, ?)", (task, process, insight))
             conn.commit()
-        self._append_jsonl("research_training_set.jsonl", data)
 
-    def log_llm(self, model, provider, prompt, response, usage, latency, metadata=None):
+    def log_llm(self, model, provider, prompt, response, usage, latency):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("INSERT INTO llm_interactions (model, prompt, response, tokens, latency_ms) VALUES (?, ?, ?, ?, ?)",
                            (model, prompt, response, usage.get('total_tokens', 0), latency))
             conn.commit()
 
-    def _append_jsonl(self, filename, data):
-        path = f"/home/user/ai-earth/data/vault/{filename}"
-        with open(path, "a") as f:
-            f.write(json.dumps(data) + "\n")
+    def log_research_full_cycle(self, data):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO research_intel (paper_name, credibility_score, technical_logic, code_stub) VALUES (?, ?, ?, ?)",
+                           (data['name'], data['credibility'], json.dumps(data['logic']), data['code']))
+            conn.commit()
 
     def get_stats(self):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM research_intel")
-            research_count = cursor.fetchone()[0]
-            return {"intel_cycles": research_count}
+            cursor.execute("SELECT COUNT(*) FROM llm_interactions")
+            llm = cursor.fetchone()[0]
+            cursor.execute("SELECT SUM(tokens) FROM llm_interactions")
+            tokens = cursor.fetchone()[0] or 0
+            return {"total_calls": llm, "total_tokens": tokens}
 
 ledger = OmniLog()
