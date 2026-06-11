@@ -65,8 +65,8 @@ class AIEarth:
     def save_workflow(self, n, w): self._workflows[n] = w; return n
     def load_workflow(self, n): return self._workflows[n]
     def list_workflows(self): return list(self._workflows.keys())
-    def info(self): return {"name": self.name, "version": "0.5.1", "status": "Active"}
-    def stats(self): return f"🌍 {self.name} v0.5.1"
+    def info(self): return {"name": self.name, "version": "0.6.5", "status": "Self-Correcting"}
+    def stats(self): return f"🌍 {self.name} v0.6.5"
 
     def platform_info(self):
         info = self.info()
@@ -82,16 +82,16 @@ class AIEarth:
             "research_discovery": {"source": "AI Earth", "files": 1, "lines": 65, "components": "Aggregator", "tests": 0},
             "storm": {"source": "Stanford", "files": 1, "lines": 70, "components": "Deep Research", "tests": 1},
             "self_discover": {"source": "Google DeepMind", "files": 1, "lines": 65, "components": "Reasoning Modules", "tests": 1},
-            "synapse_kernel": {"source": "AI Earth Core", "files": 1, "lines": 60, "components": "Synthesis Layer", "tests": 0}
+            "agent_judge": {"source": "arxiv:2501.12941", "files": 1, "lines": 60, "components": "Meta-Evaluation", "tests": 1},
+            "synapse_kernel": {"source": "AI Earth Core", "files": 1, "lines": 65, "components": "Meta-Cognitive Layer", "tests": 0},
+            "intelligence_forge": {"source": "AI Earth Core", "files": 1, "lines": 90, "components": "Self-Programming", "tests": 0}
         }
-        info["totals"] = {"files": 841, "lines": 198181, "tests": 545, "papers": 12}
-        if hasattr(self, '_bridge'):
-            info["bridge"] = {"memory_stores": self._bridge.list_memory_stores(), "graphs": self._bridge.list_graphs(), "agent_roles": self._bridge.list_agent_roles(), "crews": list(self._bridge._crews.keys())}
+        info["totals"] = {"files": 843, "lines": 198296, "tests": 546, "papers": 13}
         return info
 
     def platform_stats(self):
         pi = self.platform_info(); t = pi["totals"]
-        return f"🌍 {pi['name']} v0.5.1\n📦 Total: {t['files']} files, {t['lines']:,} lines, {t['tests']} tests"
+        return f"🌍 {pi['name']} v0.6.5\n📦 Total: {t['files']} files, {t['lines']:,} lines, {t['tests']} tests"
 
 class CrossPieceBridge:
     def __init__(self, model_router=None):
@@ -141,7 +141,15 @@ def _extend_aiearth():
     def synapse_think(self, task: str):
         from ai_earth.core.synapse import SynapseKernel
         sk = SynapseKernel(self); return sk.high_order_thought(task)
+    def forge_skill(self, insight: str, name: str):
+        from ai_earth.core.forge import IntelligenceForge
+        forge = IntelligenceForge(router=self.bridge().get_router())
+        return forge.forge_capability(insight, name)
+    def judge_audit(self, task: str, solution: str):
+        from ai_earth.lego.agent_judge.core import AgentJudge
+        judge = AgentJudge(router=self.bridge().get_router())
+        return judge.evaluate_trace(task, solution)
 
-    AIEarth.init_bridge = init_bridge; AIEarth.bridge = bridge; AIEarth.create_langgraph = create_langgraph; AIEarth.create_crew = create_crew; AIEarth.create_memory = create_memory; AIEarth.compose = compose; AIEarth.discover_intelligence = discover_intelligence; AIEarth.deep_research = deep_research; AIEarth.digest_research = digest_research; AIEarth.synapse_think = synapse_think
+    AIEarth.init_bridge = init_bridge; AIEarth.bridge = bridge; AIEarth.create_langgraph = create_langgraph; AIEarth.create_crew = create_crew; AIEarth.create_memory = create_memory; AIEarth.compose = compose; AIEarth.discover_intelligence = discover_intelligence; AIEarth.deep_research = deep_research; AIEarth.digest_research = digest_research; AIEarth.synapse_think = synapse_think; AIEarth.forge_skill = forge_skill; AIEarth.judge_audit = judge_audit
 
 _extend_aiearth()

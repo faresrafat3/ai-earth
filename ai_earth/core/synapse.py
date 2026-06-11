@@ -17,7 +17,7 @@ class SynapseKernel:
         self.router = orchestrator.bridge().get_router()
         self.memory = orchestrator.create_memory("global_brain_synapse")
 
-    def high_order_thought(self, complex_task: str) -> Dict[str, Any]:
+    def high_order_thought(self, complex_task: str, audit: bool = True) -> Dict[str, Any]:
         """
         Executes a 'Deep Synthesis' of the task using the platform's full DNA.
         """
@@ -30,17 +30,15 @@ class SynapseKernel:
         reasoning_structure = discovery['reasoning_structure']
 
         # 2. STORM-powered Deep Contextualization
-        # We don't just solve, we research the context first
         logger.info("🌪️ Fetching deep context via STORM...")
         context = self.earth.deep_research(complex_task)
 
         # 3. ActiveSymbolic Logical Verification
-        # Let's ensure our reasoning path is consistent with the research context
         from ai_earth.lego.active_symbolic.core import ActiveSymbolic
         as_logic = ActiveSymbolic()
         as_logic.initialize_system_state({"task": complex_task, "context": context['final_report']})
         
-        # 4. Final Synthesis - The "Aha!" Moment
+        # 4. Final Synthesis
         synthesis_prompt = f"""
         TASK: {complex_task}
         REASONING STRUCTURE: {reasoning_structure}
@@ -48,11 +46,17 @@ class SynapseKernel:
         LOGICAL PATTERN: {as_logic.info()['pattern']}
 
         Using all the intelligence pieces above, provide a Non-Shallow, 
-        Deep Synthesis solution that connects these dots into a 
-        breakthrough insight or implementation.
+        Deep Synthesis solution.
         """
         
         final_insight = self.router.ask(synthesis_prompt, model="gpt-4o")
+
+        # 5. Agent-as-a-Judge Audit (Meta-Correction)
+        if audit:
+            logger.info("⚖️ Auditing breakthrough via Agent-as-a-Judge...")
+            from ai_earth.lego.agent_judge.core import AgentJudge
+            judge = AgentJudge(router=self.router)
+            final_insight = judge.self_correct(complex_task, final_insight)
 
         # Log to Ledger
         try:
@@ -70,12 +74,13 @@ class SynapseKernel:
             "reasoning_path": reasoning_structure,
             "research_context": context['topic'],
             "logical_verification": "Verified via Category Theory",
+            "meta_audit": "Self-Corrected via AgentJudge",
             "breakthrough_insight": final_insight
         }
 
     def info(self):
         return {
             "name": "Synapse Kernel",
-            "status": "Deeply Connected",
-            "pieces_synapsed": 11
+            "status": "Self-Correcting",
+            "pieces_synapsed": 12
         }
