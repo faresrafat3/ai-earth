@@ -54,7 +54,33 @@ st.sidebar.info("Operational Status: STRATEGIC")
 # ═════════════════════════════════════════════════════════
 # Main Command Center
 # ═════════════════════════════════════════════════════════
-t1, t2, t3, t4, t5 = st.tabs(["🏛️ Intelligence Vault", "🌪️ Expansion Loop", "🧠 Synapse Flow", "🗺️ Strategic Roadmap", "📊 OmniLog Ledger"])
+t1, t2, t3, t4, t5, t6 = st.tabs(["🏛️ Intelligence Vault", "🕸️ Knowledge Mesh", "🌪️ Expansion Loop", "🧠 Synapse Flow", "🗺️ Strategic Roadmap", "📊 OmniLog Ledger"])
+
+# --- TAB 2: Knowledge Mesh (NEW) ---
+with t2:
+    st.header("The Intelligence Knowledge Graph")
+    st.markdown("Visualizing logical connections and transitive reasoning paths between SOTA papers.")
+    
+    from ai_earth.core.knowledge_graph import earth_graph
+    nodes = list(earth_graph.graph.nodes)
+    edges = list(earth_graph.graph.edges)
+    
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Graph Nodes", len(nodes))
+    c2.metric("Neural Links", len(edges))
+    c3.metric("Mesh Density", f"{len(edges)/max(len(nodes),1):.2f}")
+    
+    st.divider()
+    st.subheader("Cross-Paper Reasoning Path")
+    p1 = st.selectbox("Start Research Node", nodes if nodes else ["None"])
+    p2 = st.selectbox("End Research Node", nodes[::-1] if nodes else ["None"])
+    
+    if st.button("FIND LOGIC PATH"):
+        path = earth_graph.find_cross_logic_path(p1, p2)
+        if path:
+            st.success(f"Path Found: {' ➔ '.join(path)}")
+        else:
+            st.warning("No direct logical path found yet. Run more expansion cycles.")
 
 # --- TAB 4: Roadmap (NEW) ---
 with t4:
