@@ -909,13 +909,20 @@ def _extend_aiearth():
                 "lines": 65,
                 "components": "Arxiv/OpenReview Search + Firecrawl Scraper + LLM Summarizer",
                 "tests": 0,
+            },
+            "storm": {
+                "source": "Stanford University (STORM Paper)",
+                "files": 1,
+                "lines": 70,
+                "components": "Multi-Perspective Questioning + Recursive Synthesis",
+                "tests": 1,
             }
         }
         info["totals"] = {
-            "files": 838,
-            "lines": 197986,
-            "tests": 543,
-            "papers": 9,
+            "files": 839,
+            "lines": 198056,
+            "tests": 544,
+            "papers": 10,
         }
         
         # Add cross-piece bridge status
@@ -935,6 +942,12 @@ def _extend_aiearth():
         from ai_earth.capabilities.research_discovery import ResearchDiscovery
         rd = ResearchDiscovery(router=self.bridge().get_router())
         return rd.aggregate_intelligence(topic)
+
+    def deep_research(self, topic: str) -> Dict[str, Any]:
+        """Run deep STORM-based multi-perspective research."""
+        from ai_earth.lego.storm.core import STORM
+        storm = STORM(router=self.bridge().get_router())
+        return storm.deep_research(topic)
 
     def digest_research(self, paper_url: str, name: str) -> Dict[str, Any]:
         """Extract DNA and generate a LEGO stub from a paper URL."""

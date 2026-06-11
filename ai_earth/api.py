@@ -204,13 +204,17 @@ async def discover_intelligence(req: ResearchRequest):
     """Discover and aggregate intelligence on a topic."""
     earth = get_earth()
     try:
-        # Use the capability through orchestrator
-        from ai_earth.capabilities.research_discovery import ResearchDiscovery
-        rd = ResearchDiscovery(router=get_router())
-        
-        # Override count if needed (aggregate_intelligence uses 3 by default, let's make it flexible)
-        # For now, let's just use the direct method we added to AIEarth
         result = earth.discover_intelligence(req.topic)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/research/deep", tags=["Research"])
+async def deep_research(req: ResearchRequest):
+    """Run deep multi-perspective STORM research."""
+    earth = get_earth()
+    try:
+        result = earth.deep_research(req.topic)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

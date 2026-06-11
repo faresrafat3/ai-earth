@@ -164,15 +164,17 @@ if page == "🏠 Dashboard":
         st.markdown("""
         **🔗 LEGO Pieces**
         - **EvoAgentX** — Workflow Engine + 6 Optimizers
-        - **DSPy** — Signatures + Predictors + Teleprompters
-        - **Mem0** — Memory + Embeddings + Vector Stores
+        - **DSPy** — Signatures + Predictors
+        - **Mem0** — Memory + Embeddings
         - **Model Router** — Unified LLM (12 providers)
-        - **LangGraph** — Graph Engine + Pregel
-        - **CrewAI** — Multi-Agent Crews + Flow
+        - **LangGraph** — Graph Engine
+        - **CrewAI** — Multi-Agent Crews
         - **AutoGen** — Event-Driven Runtime
-        - **Research Discovery** — Intelligence Aggregator
+        - **Research Discovery** — Aggregator
+        - **ActiveSymbolic** — Category Theory Logic
+        - **STORM** — Deep Multi-Perspective Research
         
-        **🌐 API:** 19 REST endpoints (FastAPI)
+        **🌐 API:** 20 REST endpoints (FastAPI)
         """)
     
     # Platform stats
