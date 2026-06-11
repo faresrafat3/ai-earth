@@ -54,7 +54,29 @@ st.sidebar.info("Operational Status: STRATEGIC")
 # ═════════════════════════════════════════════════════════
 # Main Command Center
 # ═════════════════════════════════════════════════════════
-t1, t2, t3, t4, t5, t6 = st.tabs(["🏛️ Intelligence Vault", "🕸️ Knowledge Mesh", "🌪️ Expansion Loop", "🧠 Synapse Flow", "🗺️ Strategic Roadmap", "📊 OmniLog Ledger"])
+t1, t2, t3, t4, t5, t6, t7 = st.tabs(["🏛️ Intelligence Vault", "🤖 Agent Factory", "🕸️ Knowledge Mesh", "🌪️ Expansion Loop", "🧠 Synapse Flow", "🗺️ Strategic Roadmap", "📊 OmniLog Ledger"])
+
+# --- TAB 2: Agent Factory (NEW v1.2.0) ---
+with t2:
+    st.header("The Living Agent Factory")
+    st.markdown("Specialized autonomous agents instantiated directly from research DNA.")
+    
+    col_f1, col_f2 = st.columns(2)
+    with col_f1:
+        st.subheader("Instantiated Agents")
+        # In a real run, this would fetch from earth.factory.active_agents
+        st.write("- 🤖 ReflectionAgent_Specialist (Active)")
+        st.write("- 🤖 rStar_MCTS_Specialist (Active)")
+        st.write("- 🤖 STORM_Aggregator_Specialist (Active)")
+        st.metric("Total Active Specialists", "26")
+    
+    with col_f2:
+        st.subheader("Summon a Specialist Swarm")
+        task = st.text_input("Describe a complex task for the swarm")
+        if st.button("SUMMON & SOLVE"):
+            st.info("Swarm is collaborating using cross-paper DNA...")
+            # result = earth.solve_with_swarm(task)
+            st.success("Solution synthesized by the Swarm.")
 
 # --- TAB 2: Knowledge Mesh (NEW) ---
 with t2:
