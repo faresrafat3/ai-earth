@@ -404,6 +404,22 @@ class ModelRouter:
         # Call real LLM via the pool
         response = self._call_real_llm(model, messages, temperature, max_tokens, **kwargs)
 
+        # Log to OmniLog (The Ledger of Earth)
+        try:
+            from ai_earth.core.database import ledger
+            prompt_text = str(messages)
+            ledger.log_llm(
+                model=model,
+                provider=response.provider.value if hasattr(response.provider, "value") else str(response.provider),
+                prompt=prompt_text,
+                response=response.content,
+                usage=response.usage,
+                latency=response.latency_ms,
+                metadata={"temperature": temperature, "max_tokens": max_tokens, **kwargs}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log to ledger: {e}")
+
         # Cache response
         if use_cache and self.config.enable_cache:
             self._cache.put(model, messages, response, temperature=temperature, max_tokens=max_tokens)

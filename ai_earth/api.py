@@ -219,6 +219,17 @@ async def deep_research(req: ResearchRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/synapse/think", tags=["Core"])
+async def synapse_think(req: ResearchRequest):
+    """Run High-Order Synthesis through the Synapse Kernel."""
+    earth = get_earth()
+    try:
+        # Re-using ResearchRequest for topic input
+        result = earth.synapse_think(req.topic)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/research/digest", tags=["Research"])
 async def digest_paper(req: DigestRequest):
     """Digest a paper: extract DNA and generate LEGO code."""
@@ -278,7 +289,7 @@ async def evolution_learnings(
     return {"learnings": core.get_learning(task_type=task_type, limit=limit)}
 
 
-@app.get("/evolve/strategies", tags=["Evolution"])
+@app.get("/synapse/strategies", tags=["Evolution"])
 async def evolution_strategies():
     """Get learned strategies and their weights."""
     core = get_evolve_core()
@@ -286,6 +297,21 @@ async def evolution_strategies():
         "strategies": core.learned_strategies(),
         "info": core.info(),
     }
+
+@app.get("/ledger/stats", tags=["Data"])
+async def get_ledger_stats():
+    """Get stats from the OmniLog Database."""
+    from ai_earth.core.database import ledger
+    return ledger.get_stats()
+
+@app.get("/ledger/export", tags=["Data"])
+async def export_training_data():
+    """Export training data in JSONL format."""
+    path = "/home/user/ai-earth/data/vault/llm_training_data.jsonl"
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return {"data": [json.loads(line) for line in f.readlines()]}
+    return {"data": []}
 
 
 # ═════════════════════════════════════════════════════════

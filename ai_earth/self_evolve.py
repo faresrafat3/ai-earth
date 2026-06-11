@@ -333,32 +333,32 @@ class SelfEvolveCore:
                 if callback:
                     callback(EvolutionPhase.OBSERVE, cycle)
                 
+                # Log to Ledger
+                from ai_earth.core.database import ledger
+                ledger.log_evolution(task, iteration, "observe", str(cycle.observations), "", "", 0.0)
+
                 # Phase 2: PLAN
                 cycle.phase = EvolutionPhase.PLAN
                 plan = self._plan(cycle, strategy)
                 if callback:
                     callback(EvolutionPhase.PLAN, cycle)
-                
+                ledger.log_evolution(task, iteration, "plan", "", str(plan), "", 0.0)
+
                 # Phase 3: EXECUTE
                 cycle.phase = EvolutionPhase.EXECUTE
                 self._execute(cycle)
                 if callback:
                     callback(EvolutionPhase.EXECUTE, cycle)
-                
+                ledger.log_evolution(task, iteration, "execute", "", "", str([s.outputs for s in cycle.sub_tasks]), 0.0)
+
                 # Phase 4: EVALUATE
                 cycle.phase = EvolutionPhase.EVALUATE
                 self._evaluate(cycle, iteration)
                 if callback:
                     callback(EvolutionPhase.EVALUATE, cycle)
                 
-                # Phase 5: REFLECT
-                cycle.phase = EvolutionPhase.REFLECT
-                self._reflect(cycle)
-                if callback:
-                    callback(EvolutionPhase.REFLECT, cycle)
-                
-                # Check if quality threshold met
                 current_score = cycle.metrics.overall_score()
+                ledger.log_evolution(task, iteration, "evaluate", "", "", "", current_score)
                 if current_score > best_score:
                     best_score = current_score
                     best_output = {
