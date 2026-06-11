@@ -54,7 +54,25 @@ st.sidebar.info("Operational Status: STRATEGIC")
 # ═════════════════════════════════════════════════════════
 # Main Command Center
 # ═════════════════════════════════════════════════════════
-t1, t2, t3, t4, t5, t6, t7 = st.tabs(["🏛️ Intelligence Vault", "🤖 Agent Factory", "🕸️ Knowledge Mesh", "🌪️ Expansion Loop", "🧠 Synapse Flow", "🗺️ Strategic Roadmap", "📊 OmniLog Ledger"])
+t1, t2, t3, t4, t5, t6, t7, t8 = st.tabs(["🏛️ Intelligence Vault", "🤖 Agent Factory", "🕸️ Knowledge Mesh", "💉 Memory Lab", "🌪️ Expansion Loop", "🧠 Synapse Flow", "🗺️ Strategic Roadmap", "📊 OmniLog Ledger"])
+
+# --- TAB 4: Memory Lab (NEW v1.3.0) ---
+with t4:
+    st.header("Memory Re-Infection Lab")
+    st.markdown("Analyzing historical thoughts to optimize future cognitive pathways.")
+    
+    if st.button("RUN MEMORY REINFORCEMENT"):
+        with st.spinner("Analyzing Ledger traces..."):
+            report = earth.reinforce_memory()
+            st.success("Memory Re-Infection Successful!")
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                st.subheader("Distilled Protocols")
+                st.json(report['re_infection'])
+            with c2:
+                st.subheader("Efficiency Map")
+                st.json(report['efficiency_map'])
 
 # --- TAB 2: Agent Factory (NEW v1.2.0) ---
 with t2:

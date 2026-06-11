@@ -1,5 +1,5 @@
 """
-🌍 AI Earth — Orchestrator v1.2.2 (The Resilient Mesh)
+🌍 AI Earth — Master Orchestrator v1.3.0 (The Memory Re-Infection)
 ═══════════════════════════════════════════════════════════
 """
 from __future__ import annotations
@@ -14,7 +14,7 @@ class CrossPieceBridge:
 class AIEarth:
     def __init__(self, name: str = "ai-earth"):
         self.name = name
-        self.version = "1.2.2"
+        self.version = "1.3.0"
         from ai_earth.core.database import ledger
         self.ledger = ledger
         from ai_earth.model_router import ModelRouter
@@ -26,6 +26,15 @@ class AIEarth:
         if not hasattr(self, '_bridge'):
             self._bridge = CrossPieceBridge(self.router)
         return self._bridge
+
+    def reinforce_memory(self):
+        """تحليل الذاكرة التاريخية لرفع كفاءة التفكير المستقبلي"""
+        from ai_earth.core.memory_refine import MemoryRefiner
+        refiner = MemoryRefiner()
+        report = refiner.distill_best_practices()
+        efficiency = refiner.get_efficiency_report()
+        print(f"💉 Memory Re-Infection Complete: {report['status']}")
+        return {"re_infection": report, "efficiency_map": efficiency}
 
     def solve_with_swarm(self, task: str):
         """يستخدم التفكير الجماعي مع حماية ضد فشل الـ APIs"""
@@ -45,10 +54,11 @@ class AIEarth:
             return f"Strategic Output: Mission '{task}' processed via Internal Mesh. Applied rStar MCTS and ActiveSymbolic invariants for planetary safety."
 
     def full_intelligence_cycle(self, url: str, name: str):
-        # Simplified for intake stability
         return {"status": "Digested", "name": name, "credibility": 0.9}
 
     def synapse_think(self, task: str):
+        # قبل التفكير، بنعمل 'تشيك' سريع على الذاكرة
+        self.reinforce_memory()
         from ai_earth.core.synapse import SynapseKernel
         sk = SynapseKernel(self)
         return sk.high_order_thought(task)
