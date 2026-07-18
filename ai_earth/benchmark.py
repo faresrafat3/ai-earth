@@ -345,7 +345,7 @@ class BenchmarkSuite:
         results = []
         
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)  # structural benchmark — measures composition, not model quality
         
         # Test improvement over iterations
         start = time.time()

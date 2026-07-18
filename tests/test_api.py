@@ -57,6 +57,7 @@ class TestEvolutionEndpoints:
         r = requests.post(f"{api_url}/evolve", json={
             "task": "Analyze data patterns",
             "max_iterations": 1,
+            "llm": False,  # structural test — real-LLM path covered by @llm tests
         }, timeout=30)
         assert r.status_code == 200
         data = r.json()

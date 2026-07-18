@@ -42,11 +42,14 @@ import json
 import time
 import uuid
 import hashlib
+import logging
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass, field
 
 from ai_earth.safety.timeout import timeout_guardian
+
+logger = logging.getLogger("ai_earth.self_evolve")
 
 # ═════════════════════════════════════════════════════════
 # Evolution Enums & Types
@@ -155,6 +158,8 @@ class EvolutionCycle:
     reflections: List[str] = field(default_factory=list)
     improvements: List[str] = field(default_factory=list)
     memory_context: Dict[str, Any] = field(default_factory=dict)
+    llm_calls: int = 0          # real LLM calls made this cycle
+    llm_cost_usd: float = 0.0   # real cost of this cycle
     created_at: float = 0.0
     completed_at: float = 0.0
 
@@ -182,6 +187,8 @@ class EvolutionCycle:
             "num_observations": len(self.observations),
             "num_reflections": len(self.reflections),
             "num_improvements": len(self.improvements),
+            "llm_calls": self.llm_calls,
+            "llm_cost_usd": round(self.llm_cost_usd, 6),
             "elapsed_seconds": self.elapsed(),
         }
 
@@ -251,12 +258,27 @@ class SelfEvolveCore:
         quality_threshold: float = 0.8,
         max_cost_usd: float = 10.0,
         verbose: bool = True,
+        llm: bool = True,
+        llm_model: str = "gpt-4o-mini",
+        llm_budget_per_cycle: int = 6,
+        llm_max_tokens: int = 300,
     ):
         self._router = model_router
         self._memory = memory_store or {}
         self._quality_threshold = quality_threshold
         self._max_cost_usd = max_cost_usd
         self._verbose = verbose
+
+        # ─── Real LLM intelligence (the soul of evolution) ───
+        # llm=True  → phases enriched with REAL LLM reasoning (production)
+        # llm=False → pure deterministic logic, zero API calls
+        #             (structural tests / offline mode — NOT mock: nothing
+        #              pretends to be AI output, results are labeled heuristic)
+        self._llm_enabled = llm
+        self._llm_model = llm_model
+        self._llm_budget_per_cycle = max(0, llm_budget_per_cycle)
+        self._llm_max_tokens = llm_max_tokens
+        self._llm_total_cost = 0.0
         
         # Evolution history
         self._cycles: List[EvolutionCycle] = []
@@ -279,6 +301,50 @@ class SelfEvolveCore:
     @bridge.setter
     def bridge(self, value):
         self._bridge = value
+
+    # ─── Real LLM Helper (budgeted, never hangs, never crashes) ───
+
+    def _ask_llm(self, cycle: EvolutionCycle, prompt: str, system: str = None,
+                 max_tokens: int = None) -> Optional[str]:
+        """
+        Make ONE budgeted real LLM call for a cycle phase.
+
+        Guarantees:
+        - Never exceeds llm_budget_per_cycle calls per cycle
+        - Never exceeds max_cost_usd total across the core's lifetime
+        - Never raises: any failure returns None → phase falls back to
+          deterministic logic (evolution keeps working offline)
+        """
+        if not self._llm_enabled:
+            return None
+        if cycle.llm_calls >= self._llm_budget_per_cycle:
+            return None
+        if self._llm_total_cost >= self._max_cost_usd:
+            return None
+        try:
+            if self._router is None:
+                from ai_earth.model_router import ModelRouter
+                self._router = ModelRouter()
+            resp = self._router.chat(
+                model=self._llm_model,
+                system=system or "You are the reasoning engine of AI Earth's self-evolution loop. Be concise and concrete.",
+                prompt=prompt,
+                max_tokens=max_tokens or self._llm_max_tokens,
+                temperature=0.3,
+            )
+            cycle.llm_calls += 1
+            cost = 0.0
+            if isinstance(resp.usage, dict):
+                pt = resp.usage.get("prompt_tokens", 0)
+                ct = resp.usage.get("completion_tokens", 0)
+                cost = (pt * 0.00015 + ct * 0.0006) / 1000.0
+            cycle.llm_cost_usd += cost
+            self._llm_total_cost += cost
+            content = (resp.content or "").strip()
+            return content if content else None
+        except Exception as e:
+            logger.warning(f"LLM phase call failed (graceful fallback to heuristic): {e}")
+            return None
     
     # ─── Main Evolution Loop ────────────────────────────
     
@@ -459,6 +525,20 @@ class SelfEvolveCore:
             ]
             if relevant_learnings:
                 cycle.observations.append(f"Past learnings for this type: {len(relevant_learnings)}")
+
+        # 🧠 Real LLM observation — actual intelligence analyzing the task
+        llm_analysis = self._ask_llm(
+            cycle,
+            prompt=(
+                f"Task: {cycle.task}\n\n"
+                "Analyze this task in 3 short bullet points: "
+                "(1) what it really requires, (2) the main risk/difficulty, "
+                "(3) the single most effective approach. Max 60 words total."
+            ),
+            max_tokens=140,
+        )
+        if llm_analysis:
+            cycle.observations.append(f"[llm] {llm_analysis}")
     
     def _plan(self, cycle: EvolutionCycle, strategy: Strategy) -> List[Dict[str, Any]]:
         """Phase 2: Decompose task into sub-tasks."""
@@ -493,17 +573,41 @@ class SelfEvolveCore:
         return sub_task_defs
     
     def _execute(self, cycle: EvolutionCycle):
-        """Phase 3: Execute sub-tasks."""
-        for sub in cycle.sub_tasks:
+        """Phase 3: Execute sub-tasks — real LLM work when enabled."""
+        # Cap LLM-executed subtasks (budget-aware); rest run deterministic
+        llm_slots = min(3, max(0, self._llm_budget_per_cycle - cycle.llm_calls - 2))
+        for idx, sub in enumerate(cycle.sub_tasks):
             sub.status = TaskStatus.RUNNING
             try:
-                # Simulate execution — in production, this would route to
-                # LangGraph graphs, CrewAI crews, or DSPy predictors
-                sub.outputs = {
-                    "result": f"[{sub.name}] executed successfully",
-                    "strategy_used": sub.strategy.value,
-                    "inputs_processed": list(sub.inputs.keys()),
-                }
+                llm_result = None
+                if idx < llm_slots:
+                    # 🧠 REAL execution: the LLM actually performs the sub-task
+                    llm_result = self._ask_llm(
+                        cycle,
+                        prompt=(
+                            f"Main task: {cycle.task}\n"
+                            f"Sub-task: {sub.name} — {sub.description}\n"
+                            f"Inputs: {json.dumps(sub.inputs, default=str)[:400]}\n\n"
+                            "Perform this sub-task now. Return only the concrete result "
+                            "(no preamble). Max 120 words."
+                        ),
+                        max_tokens=250,
+                    )
+                if llm_result:
+                    sub.outputs = {
+                        "result": llm_result,
+                        "source": "llm",
+                        "strategy_used": sub.strategy.value,
+                        "inputs_processed": list(sub.inputs.keys()),
+                    }
+                else:
+                    # Deterministic fallback (offline mode / budget exhausted)
+                    sub.outputs = {
+                        "result": f"[{sub.name}] executed via {sub.strategy.value} pipeline",
+                        "source": "heuristic",
+                        "strategy_used": sub.strategy.value,
+                        "inputs_processed": list(sub.inputs.keys()),
+                    }
                 sub.status = TaskStatus.SUCCESS
             except Exception as e:
                 sub.status = TaskStatus.FAILED
@@ -525,12 +629,45 @@ class SelfEvolveCore:
         if self._cycles:
             prev_score = self._cycles[-1].metrics.overall_score()
         
-        # Simulate progressive improvement
+        # Heuristic base quality (deterministic floor)
         quality = min(0.4 + success_rate * 0.3 + iteration * 0.08, 1.0)
         efficiency = min(0.5 + iteration * 0.05, 1.0)
         complexity = min(0.3 + total_subs * 0.15, 1.0)
         memory_util = min(len(cycle.memory_context) * 0.2, 1.0)
-        
+
+        # 🧠 Real LLM-as-Judge: score actual execution outputs
+        results_preview = " | ".join(
+            str(s.outputs.get("result", ""))[:150] for s in cycle.sub_tasks[:3]
+        )
+        llm_judgment = self._ask_llm(
+            cycle,
+            prompt=(
+                f"Task: {cycle.task}\n"
+                f"Execution results: {results_preview[:600]}\n\n"
+                "Rate how well these results accomplish the task on a scale of 0.0 to 1.0. "
+                "Reply with ONLY the number (e.g. 0.75)."
+            ),
+            max_tokens=8,
+        )
+        if llm_judgment:
+            try:
+                import re as _re
+                m = _re.search(r"(\d+(?:\.\d+)?)", llm_judgment)
+                if m:
+                    llm_score = max(0.0, min(float(m.group(1)), 1.0))
+                    # Blend: 40% deterministic floor + 60% real judge
+                    quality = round(0.4 * quality + 0.6 * llm_score, 4)
+            except (ValueError, AttributeError):
+                pass
+
+        # Real usage numbers (no simulation)
+        real_tokens = 0
+        if self._router is not None:
+            try:
+                real_tokens = self._router.get_usage().get("total_tokens", 0)
+            except Exception:
+                real_tokens = 0
+
         cycle.metrics = EvolutionMetrics(
             quality_score=round(quality, 4),
             efficiency_score=round(efficiency, 4),
@@ -538,8 +675,8 @@ class SelfEvolveCore:
             memory_utilization=round(memory_util, 4),
             iteration=iteration,
             improvement_delta=round(quality - prev_score, 4),
-            total_tokens=iteration * 1500,
-            total_cost_usd=iteration * 0.02,
+            total_tokens=real_tokens,
+            total_cost_usd=round(cycle.llm_cost_usd, 6),
         )
     
     def _reflect(self, cycle: EvolutionCycle):
@@ -568,7 +705,22 @@ class SelfEvolveCore:
             reflections.append(f"Quality threshold met! Score: {score:.4f}")
         else:
             reflections.append(f"Score {score:.4f} below threshold {self._quality_threshold} — more evolution needed")
-        
+
+        # 🧠 Real LLM reflection — actual meta-cognition about the cycle
+        llm_reflection = self._ask_llm(
+            cycle,
+            prompt=(
+                f"Task: {cycle.task}\n"
+                f"Score achieved: {score:.2f} (threshold {self._quality_threshold})\n"
+                f"Sub-tasks run: {[s.name for s in cycle.sub_tasks][:5]}\n\n"
+                "Name the ONE most impactful concrete improvement for the next iteration. "
+                "One sentence, max 25 words."
+            ),
+            max_tokens=60,
+        )
+        if llm_reflection:
+            reflections.append(f"[llm] {llm_reflection}")
+
         cycle.reflections = reflections
     
     def _evolve(self, cycle: EvolutionCycle):

@@ -94,24 +94,24 @@ class TestCoreInit:
 
     def test_default_init(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         assert core is not None
         assert core.num_cycles() == 0
         assert core.num_learnings() == 0
 
     def test_custom_threshold(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore(quality_threshold=0.95)
+        core = SelfEvolveCore(llm=False, quality_threshold=0.95)
         assert core.info()["quality_threshold"] == 0.95
 
     def test_custom_budget(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore(max_cost_usd=5.0)
+        core = SelfEvolveCore(llm=False, max_cost_usd=5.0)
         assert core.info()["max_cost_usd"] == 5.0
 
     def test_info(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         info = core.info()
         assert "cycles_completed" in info
         assert "phases" in info
@@ -120,7 +120,7 @@ class TestCoreInit:
 
     def test_stats(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         stats = core.stats()
         assert "Self-Evolving" in stats
         assert "observe" in stats
@@ -135,14 +135,14 @@ class TestEvolutionLoop:
 
     def test_single_iteration(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Classify text into categories", max_iterations=1)
         assert result.iterations == 1
         assert result.final_metrics is not None
 
     def test_multiple_iterations(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Build a research pipeline", max_iterations=3)
         assert result.iterations == 3
         # Scores should progressively improve
@@ -151,7 +151,7 @@ class TestEvolutionLoop:
 
     def test_early_stop_on_quality(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore(quality_threshold=0.5)
+        core = SelfEvolveCore(llm=False, quality_threshold=0.5)
         result = core.evolve("Simple task", max_iterations=10)
         # Should stop before 10 iterations if threshold met
         assert result.iterations <= 10
@@ -163,7 +163,7 @@ class TestEvolutionLoop:
         def tracker(phase, cycle):
             phases_seen.append(phase.value)
         
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         core.evolve("Test task", max_iterations=1, callback=tracker)
         
         assert "observe" in phases_seen
@@ -173,7 +173,7 @@ class TestEvolutionLoop:
 
     def test_evolution_result_structure(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Analyze data", max_iterations=2)
         d = result.to_dict()
         assert "success" in d
@@ -183,7 +183,7 @@ class TestEvolutionLoop:
 
     def test_cycles_completed(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         core.evolve("Task 1", max_iterations=2)
         core.evolve("Task 2", max_iterations=2)
         assert core.num_cycles() == 4
@@ -198,37 +198,37 @@ class TestStrategies:
 
     def test_prompt_optimize(self):
         from ai_earth.self_evolve import SelfEvolveCore, Strategy
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Generate creative text", max_iterations=1, strategy=Strategy.PROMPT_OPTIMIZE)
         assert result.iterations == 1
 
     def test_workflow_evolve(self):
         from ai_earth.self_evolve import SelfEvolveCore, Strategy
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Automate workflow", max_iterations=1, strategy=Strategy.WORKFLOW_EVOLVE)
         assert result.iterations == 1
 
     def test_agent_refine(self):
         from ai_earth.self_evolve import SelfEvolveCore, Strategy
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Build agent team", max_iterations=1, strategy=Strategy.AGENT_REFINE)
         assert result.iterations == 1
 
     def test_memory_augment(self):
         from ai_earth.self_evolve import SelfEvolveCore, Strategy
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Research topic", max_iterations=1, strategy=Strategy.MEMORY_AUGMENT)
         assert result.iterations == 1
 
     def test_graph_restructure(self):
         from ai_earth.self_evolve import SelfEvolveCore, Strategy
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Design graph pipeline", max_iterations=1, strategy=Strategy.GRAPH_RESTRUCTURE)
         assert result.iterations == 1
 
     def test_hybrid_strategy(self):
         from ai_earth.self_evolve import SelfEvolveCore, Strategy
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Complex multi-step task", max_iterations=1, strategy=Strategy.HYBRID)
         assert result.iterations == 1
 
@@ -278,13 +278,13 @@ class TestMemoryLearning:
 
     def test_learnings_stored(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         core.evolve("Analyze data patterns", max_iterations=2)
         assert core.num_learnings() == 2
 
     def test_learnings_by_type(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         core.evolve("Analyze data", max_iterations=1)
         core.evolve("Generate report", max_iterations=1)
         
@@ -295,7 +295,7 @@ class TestMemoryLearning:
 
     def test_strategies_learned(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         core.evolve("Complex analysis task requiring efficiency", max_iterations=3)
         
         strategies = core.learned_strategies()
@@ -303,7 +303,7 @@ class TestMemoryLearning:
 
     def test_memory_context_used(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         core._memory = {"data patterns": {"insight": "Patterns cluster in 3 groups"}}
         
         result = core.evolve("Analyze data patterns", max_iterations=1)
@@ -311,7 +311,7 @@ class TestMemoryLearning:
 
     def test_reset(self):
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         core.evolve("Test task", max_iterations=2)
         assert core.num_cycles() == 2
         
@@ -332,7 +332,7 @@ class TestLEGOPieceIntegration:
         from ai_earth.model_router import ModelRouter
         router = ModelRouter()
         router.configure()  # Real LLM
-        core = SelfEvolveCore(model_router=router)
+        core = SelfEvolveCore(llm=False, model_router=router)
         result = core.evolve("Test with router", max_iterations=1)
         assert result.success
 
@@ -341,7 +341,7 @@ class TestLEGOPieceIntegration:
         from langgraph.graph.state import StateGraph
         from typing import TypedDict
         
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         
         class State(TypedDict):
             query: str
@@ -354,7 +354,7 @@ class TestLEGOPieceIntegration:
     def test_with_crewai(self):
         from ai_earth.self_evolve import SelfEvolveCore
         from crewai import Process
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Build agent crew", max_iterations=1, strategy="agent_refine")
         assert Process.sequential.value == "sequential"
         assert result.iterations == 1
@@ -362,7 +362,7 @@ class TestLEGOPieceIntegration:
     def test_with_dspy(self):
         from ai_earth.self_evolve import SelfEvolveCore
         from dspy.primitives.example import Example
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Optimize prompts", max_iterations=1, strategy="prompt_optimize")
         e = Example(x=1, y=2)
         assert e.x == 1
@@ -371,7 +371,7 @@ class TestLEGOPieceIntegration:
     def test_with_mem0(self):
         from ai_earth.self_evolve import SelfEvolveCore
         from mem0.configs.base import MemoryConfig
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Enhance with memory", max_iterations=1, strategy="memory_augment")
         mc = MemoryConfig()
         assert mc is not None
@@ -390,7 +390,7 @@ class TestLEGOPieceIntegration:
         router.configure()  # Real LLM
         
         # Setup core
-        core = SelfEvolveCore(model_router=router)
+        core = SelfEvolveCore(llm=False, model_router=router)
         
         # Create platform components
         earth.create_langgraph("evolve_graph")
@@ -412,3 +412,62 @@ class TestLEGOPieceIntegration:
         info = earth.platform_info()
         assert info["totals"]["tests"] == 543
         assert len(info["lego_pieces"]) == 9
+
+
+# ═════════════════════════════════════════════════════════
+# Real LLM Evolution (Integration) — run via: pytest -m llm
+# ═════════════════════════════════════════════════════════
+
+@pytest.mark.llm
+class TestRealLLMEvolution:
+    """End-to-end evolution powered by REAL LLM intelligence.
+
+    These tests make real API calls (budgeted: ~6 calls/cycle,
+    small max_tokens). They prove the evolution loop actually
+    thinks — observations, execution, judging, and reflection
+    all come from a live model, not heuristics.
+    """
+
+    def test_real_evolution_single_cycle(self):
+        from ai_earth.self_evolve import SelfEvolveCore
+        core = SelfEvolveCore(llm=True, llm_budget_per_cycle=5, verbose=False)
+        result = core.evolve(
+            "Summarize the key idea of self-evolving AI platforms in one paragraph",
+            max_iterations=1,
+        )
+        assert result.iterations == 1
+        cycle = core.latest_cycle()
+        # Real intelligence actually ran:
+        assert cycle.llm_calls > 0, "expected real LLM calls in the cycle"
+        # LLM-sourced observation exists
+        assert any("[llm]" in o for o in cycle.observations), "expected LLM observation"
+        # At least one sub-task was executed by the real model
+        llm_outputs = [s for s in cycle.sub_tasks if s.outputs.get("source") == "llm"]
+        assert len(llm_outputs) > 0, "expected at least one LLM-executed sub-task"
+        # Real (non-simulated) cost accounting: metrics snapshot is taken at
+        # evaluate-time, before reflect's extra call — so it must be a positive
+        # value not exceeding the cycle's final total.
+        assert 0 < cycle.metrics.total_cost_usd <= round(cycle.llm_cost_usd, 6)
+
+    def test_real_evolution_llm_reflection(self):
+        from ai_earth.self_evolve import SelfEvolveCore
+        core = SelfEvolveCore(llm=True, llm_budget_per_cycle=6, verbose=False)
+        core.evolve("Draft a plan to benchmark LLM routing strategies", max_iterations=1)
+        cycle = core.latest_cycle()
+        assert any("[llm]" in r for r in cycle.reflections), "expected LLM reflection"
+
+    def test_budget_is_respected(self):
+        from ai_earth.self_evolve import SelfEvolveCore
+        core = SelfEvolveCore(llm=True, llm_budget_per_cycle=2, verbose=False)
+        core.evolve("Classify support tickets by urgency", max_iterations=1)
+        cycle = core.latest_cycle()
+        assert cycle.llm_calls <= 2, f"budget violated: {cycle.llm_calls} calls"
+
+    def test_offline_mode_makes_zero_calls(self):
+        """llm=False must never touch the network."""
+        from ai_earth.self_evolve import SelfEvolveCore
+        core = SelfEvolveCore(llm=False)
+        core.evolve("Any task at all", max_iterations=2)
+        cycle = core.latest_cycle()
+        assert cycle.llm_calls == 0
+        assert cycle.llm_cost_usd == 0.0

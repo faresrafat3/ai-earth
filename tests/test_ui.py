@@ -41,7 +41,7 @@ class TestUIModule:
     def test_ui_evolution_core(self):
         """Test evolution core is available for evolve page."""
         from ai_earth.self_evolve import SelfEvolveCore
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Test task for UI", max_iterations=1)
         assert result.iterations == 1
         assert result.to_dict() is not None
@@ -111,7 +111,7 @@ class TestUIEvolutionIntegration:
         """Test evolution with callback (like UI progress tracking)."""
         from ai_earth.self_evolve import SelfEvolveCore, EvolutionPhase
         
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         phases_seen = []
         
         def callback(phase, cycle):
@@ -133,7 +133,7 @@ class TestUIEvolutionIntegration:
         """Test scores improve over iterations."""
         from ai_earth.self_evolve import SelfEvolveCore
         
-        core = SelfEvolveCore()
+        core = SelfEvolveCore(llm=False)
         result = core.evolve("Complex analysis task", max_iterations=3)
         
         scores = [h["metrics"]["overall_score"] for h in result.history]
@@ -146,6 +146,6 @@ class TestUIEvolutionIntegration:
         
         for strat in ["hybrid", "prompt_optimize", "workflow_evolve",
                        "agent_refine", "memory_augment", "graph_restructure"]:
-            core = SelfEvolveCore()
+            core = SelfEvolveCore(llm=False)
             result = core.evolve("Test task", max_iterations=1, strategy=strat)
             assert result.iterations >= 1

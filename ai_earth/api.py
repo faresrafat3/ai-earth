@@ -69,6 +69,7 @@ class EvolveRequest(BaseModel):
     strategy: str = Field("hybrid", description="Evolution strategy")
     quality_threshold: float = Field(0.8, description="Target quality score", ge=0.0, le=1.0)
     context: Optional[Dict[str, Any]] = Field(None, description="Additional context")
+    llm: bool = Field(True, description="Use real LLM intelligence in the evolution phases (False = deterministic offline mode)")
 
 class ChatRequest(BaseModel):
     """Request for LLM chat."""
@@ -261,6 +262,7 @@ async def run_evolution(req: EvolveRequest):
     
     # Configure core
     core._quality_threshold = req.quality_threshold
+    core._llm_enabled = req.llm  # caller controls real-LLM vs offline deterministic
     
     result = core.evolve(
         task=req.task,
