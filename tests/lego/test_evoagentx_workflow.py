@@ -56,7 +56,7 @@ class TestEvoAgentXImports:
                 parse_mode="str",
             )
             assert node.name == "test_node"
-            assert node.state == WorkFlowNodeState.PENDING
+            assert node.status == WorkFlowNodeState.PENDING
         except (ImportError, ModuleNotFoundError) as e:
             pytest.skip(f"evoagentx not available: {e}")
 

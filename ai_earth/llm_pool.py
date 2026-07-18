@@ -16,6 +16,56 @@ from collections import defaultdict
 logger = logging.getLogger("ai_earth.llm_pool")
 
 # ═════════════════════════════════════════════════════════
+# 🛡️ Anti-Hang Guards (configurable via .env)
+# ═════════════════════════════════════════════════════════
+# HTTP_TIMEOUT: hard cap on every HTTP request (seconds)
+# MAX_ATTEMPTS: hard cap on total attempts per call_llm()
+# MAX_CALLS_PER_RUN: budget guard — protects rate limits from
+#                    runaway loops (tests, evolution cycles)
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name) or _load_env().get(name) or default)
+    except (ValueError, TypeError):
+        return default
+
+_HTTP_TIMEOUT: int = 30       # resolved lazily after _load_env defined
+_MAX_ATTEMPTS: int = 4
+_MAX_CALLS_PER_RUN: int = 200
+_GUARDS_LOADED: bool = False
+_run_call_count: int = 0
+_guard_lock = threading.Lock()
+
+def _load_guards():
+    """Load guard values from env once (lazy — after _load_env exists)."""
+    global _HTTP_TIMEOUT, _MAX_ATTEMPTS, _MAX_CALLS_PER_RUN, _GUARDS_LOADED
+    if _GUARDS_LOADED:
+        return
+    _HTTP_TIMEOUT = _env_int("AI_EARTH_HTTP_TIMEOUT", 30)
+    _MAX_ATTEMPTS = _env_int("AI_EARTH_MAX_ATTEMPTS", 4)
+    _MAX_CALLS_PER_RUN = _env_int("AI_EARTH_MAX_CALLS_PER_RUN", 200)
+    _GUARDS_LOADED = True
+
+def _check_call_budget():
+    """Raise fast if this process exceeded its LLM call budget."""
+    global _run_call_count
+    _load_guards()
+    with _guard_lock:
+        _run_call_count += 1
+        if _run_call_count > _MAX_CALLS_PER_RUN:
+            raise RuntimeError(
+                f"LLM call budget exceeded ({_MAX_CALLS_PER_RUN} calls/run). "
+                f"Raise AI_EARTH_MAX_CALLS_PER_RUN in .env if intentional."
+            )
+
+def calls_this_run() -> int:
+    return _run_call_count
+
+def _http_timeout() -> int:
+    _load_guards()
+    return _HTTP_TIMEOUT
+
+# ═════════════════════════════════════════════════════════
 # Provider Types
 # ═════════════════════════════════════════════════════════
 
@@ -271,6 +321,7 @@ def call_llm(model: str, messages: List[Dict], temperature: float = 0.7,
     """
     pool = get_key_pool()
     start = time.time()
+    _check_call_budget()  # 🛡️ budget guard — fail fast, never loop forever
 
     # Determine preferred provider from model name
     if any(g in model.lower() for g in ["gemini", "google/"]):
@@ -280,52 +331,63 @@ def call_llm(model: str, messages: List[Dict], temperature: float = 0.7,
     else:
         providers = ["openrouter", "github", "google"]
 
+    attempts = 0
+    tried_keys: set = set()
     for prov in providers:
-        key = pool.get_key(prov)
-        if key is None:
-            continue
+        # Try up to 2 different keys per provider (bounded, never infinite)
+        for _ in range(2):
+            if attempts >= _MAX_ATTEMPTS:
+                break
+            key = pool.get_key(prov)
+            if key is None or key.key_id in tried_keys:
+                break
+            tried_keys.add(key.key_id)
+            attempts += 1
 
-        provider_model = _resolve_model(model, prov)
+            provider_model = _resolve_model(model, prov)
 
-        try:
-            if prov == "openrouter":
-                data, status, headers = _call_openrouter(key.api_key, provider_model, messages, temperature, max_tokens, **kwargs)
-            elif prov == "github":
-                data, status, headers = _call_github(key.api_key, provider_model, messages, temperature, max_tokens, **kwargs)
-            elif prov == "google":
-                data, status, headers = _call_google(key.api_key, provider_model, messages, temperature, max_tokens, **kwargs)
-            else:
+            try:
+                if prov == "openrouter":
+                    data, status, headers = _call_openrouter(key.api_key, provider_model, messages, temperature, max_tokens, **kwargs)
+                elif prov == "github":
+                    data, status, headers = _call_github(key.api_key, provider_model, messages, temperature, max_tokens, **kwargs)
+                elif prov == "google":
+                    data, status, headers = _call_google(key.api_key, provider_model, messages, temperature, max_tokens, **kwargs)
+                else:
+                    break
+
+                # Update rate limit headers
+                if 'x-ratelimit-remaining' in headers:
+                    try:
+                        key.requests_remaining = int(headers['x-ratelimit-remaining'])
+                    except (ValueError, TypeError):
+                        pass
+
+                if status == 200:
+                    result = _parse_response(data, prov, provider_model, start)
+                    pool.report_success(key.key_id, tokens=result["usage"]["total_tokens"], cost=result["cost_usd"])
+                    return result
+                elif status == 429:
+                    retry_after = float(headers.get('retry-after', 60))
+                    pool.report_failure(key.key_id, status_code=429, retry_after=retry_after)
+                    logger.warning(f"Key {key.key_id} rate-limited ({retry_after}s), trying next")
+                    continue
+                else:
+                    retry_after = float(headers.get('retry-after', 30))
+                    pool.report_failure(key.key_id, status_code=status, retry_after=retry_after)
+                    logger.warning(f"Key {key.key_id} status {status}: {str(data)[:100]}")
+                    continue
+            except Exception as e:
+                pool.report_failure(key.key_id)
+                logger.warning(f"Key {key.key_id} error: {e}")
                 continue
+        if attempts >= _MAX_ATTEMPTS:
+            break
 
-            # Update rate limit headers
-            if 'x-ratelimit-remaining' in headers:
-                try:
-                    key.requests_remaining = int(headers['x-ratelimit-remaining'])
-                except (ValueError, TypeError):
-                    pass
-
-            if status == 200:
-                result = _parse_response(data, prov, provider_model, start)
-                pool.report_success(key.key_id, tokens=result["usage"]["total_tokens"], cost=result["cost_usd"])
-                return result
-            elif status == 429:
-                retry_after = float(headers.get('retry-after', 60))
-                pool.report_failure(key.key_id, status_code=429, retry_after=retry_after)
-                logger.warning(f"Key {key.key_id} rate-limited ({retry_after}s), trying next")
-                continue
-            else:
-                retry_after = float(headers.get('retry-after', 30))
-                pool.report_failure(key.key_id, status_code=status, retry_after=retry_after)
-                logger.warning(f"Key {key.key_id} status {status}: {str(data)[:100]}")
-                continue
-        except Exception as e:
-            pool.report_failure(key.key_id)
-            logger.warning(f"Key {key.key_id} error: {e}")
-            continue
-
-    # All providers exhausted
+    # All providers exhausted (bounded by _MAX_ATTEMPTS — never infinite)
     raise RuntimeError(
-        f"All LLM providers failed for model={model}. Pool stats: {pool.stats()}"
+        f"All LLM providers failed for model={model} after {attempts} attempts. "
+        f"Pool stats: {pool.stats()}"
     )
 
 # ═════════════════════════════════════════════════════════
@@ -345,7 +407,7 @@ def _call_openrouter(api_key: str, model: str, messages: List[Dict],
         "HTTP-Referer": "https://github.com/faresrafat3/ai-earth",
         "X-Title": "AI Earth Platform",
     }
-    resp = requests.post(url, headers=headers, json=payload, timeout=60)
+    resp = requests.post(url, headers=headers, json=payload, timeout=_http_timeout())
     return resp.json(), resp.status_code, dict(resp.headers)
 
 def _call_github(api_key: str, model: str, messages: List[Dict],
@@ -353,7 +415,7 @@ def _call_github(api_key: str, model: str, messages: List[Dict],
     url = "https://models.inference.ai.azure.com/chat/completions"
     payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    resp = requests.post(url, headers=headers, json=payload, timeout=60)
+    resp = requests.post(url, headers=headers, json=payload, timeout=_http_timeout())
     return resp.json(), resp.status_code, dict(resp.headers)
 
 def _call_google(api_key: str, model: str, messages: List[Dict],
@@ -369,7 +431,7 @@ def _call_google(api_key: str, model: str, messages: List[Dict],
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     payload = {"contents": contents, "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens}}
     headers = {"Content-Type": "application/json"}
-    resp = requests.post(url, headers=headers, json=payload, timeout=60)
+    resp = requests.post(url, headers=headers, json=payload, timeout=_http_timeout())
     return resp.json(), resp.status_code, dict(resp.headers)
 
 # ═════════════════════════════════════════════════════════

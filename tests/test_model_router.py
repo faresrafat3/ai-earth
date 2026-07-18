@@ -150,6 +150,8 @@ class TestResponseCache:
 class TestRealLLMProvider:
     """Test real LLM provider calls via the Key Pool."""
 
+    pytestmark = pytest.mark.llm  # real API calls — run via: pytest -m llm
+
     def test_real_chat_call(self):
         """Test that a real LLM call works and returns content."""
         router = ModelRouter()
@@ -351,6 +353,7 @@ class TestRouterIntegration:
         except Exception:
             llm = None
 
+    @pytest.mark.llm
     def test_router_with_all_packages(self):
         """Test that router works alongside all LEGO packages."""
         from ai_earth.model_router import ModelRouter

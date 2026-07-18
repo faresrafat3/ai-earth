@@ -46,8 +46,9 @@ class TestUIModule:
         assert result.iterations == 1
         assert result.to_dict() is not None
 
+    @pytest.mark.llm
     def test_ui_model_router(self):
-        """Test model router is available for chat page."""
+        """Test model router is available for chat page (real LLM call)."""
         from ai_earth.model_router import ModelRouter
         router = ModelRouter()
         router.configure()  # Real LLM

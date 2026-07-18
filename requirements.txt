@@ -16,6 +16,7 @@ tqdm>=4.60
 regex>=2023.0
 loguru>=0.7
 tenacity>=8.0
+overdue>=0.1.5
 cloudpickle>=3.0
 ujson>=5.0
 
@@ -50,4 +51,5 @@ streamlit>=1.35
 
 # ─── Testing ──────────────────────────────────────────
 pytest>=8.0
-pytest-anyio>=4.0
+anyio>=4.0
+pytest-timeout>=2.3
