@@ -372,6 +372,13 @@ class SelfEvolveCore:
                         "improvements": cycle.improvements[:5],
                     }
                 
+                # Phase 5: REFLECT
+                cycle.phase = EvolutionPhase.REFLECT
+                self._reflect(cycle)
+                if callback:
+                    callback(EvolutionPhase.REFLECT, cycle)
+                ledger.log_evolution(task, iteration, "reflect", "", str(cycle.reflections), "", current_score)
+
                 # Phase 6: EVOLVE (if not last iteration)
                 if iteration < max_iterations and current_score < self._quality_threshold:
                     cycle.phase = EvolutionPhase.EVOLVE

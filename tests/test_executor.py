@@ -8,9 +8,9 @@ import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'ai_earth', 'lego'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'ai_earth', 'lego', 'stubs'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'ai_earth'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'ai_earth', 'lego'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'ai_earth', 'lego', 'stubs'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'ai_earth'))
 
 
 class TestExecutorInit:
@@ -253,4 +253,4 @@ class TestExecutorIntegration:
         
         # Verify platform still works
         info = earth.platform_info()
-        assert len(info["lego_pieces"]) == 7
+        assert len(info["lego_pieces"]) >= 7

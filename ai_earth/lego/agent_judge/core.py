@@ -43,7 +43,13 @@ class AgentJudge:
         )
         
         import json
-        return json.loads(response.content)
+        import re
+        content = response.content.strip()
+        # Handle markdown-wrapped JSON
+        if content.startswith("```"):
+            content = re.sub(r'^```(?:json)?\s*', '', content)
+            content = re.sub(r'\s*```$', '', content)
+        return json.loads(content)
 
     def self_correct(self, task: str, original_solution: str) -> str:
         """Runs the judge and then generates a corrected solution."""

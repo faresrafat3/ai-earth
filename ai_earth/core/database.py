@@ -42,6 +42,20 @@ class OmniLog:
                            (data['name'], data['credibility'], json.dumps(data['logic']), data['code']))
             conn.commit()
 
+    def log_evolution(self, task, iteration, phase, input_data, plan, output, score):
+        """Log an evolution cycle."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("CREATE TABLE IF NOT EXISTS evolution_log (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, iteration INTEGER, phase TEXT, input_data TEXT, plan TEXT, output TEXT, score REAL, timestamp TEXT)")
+                cursor.execute(
+                    "INSERT INTO evolution_log (task, iteration, phase, input_data, plan, output, score, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+                    (str(task)[:100], iteration, phase, str(input_data)[:200], str(plan)[:200], str(output)[:200], float(score))
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Ledger evolution log error: {e}")
+
     def get_stats(self):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()

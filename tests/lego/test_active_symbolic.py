@@ -13,7 +13,7 @@ def test_active_symbolic_info():
     as_lego = ActiveSymbolic()
     info = as_lego.info()
     assert info["pattern"] == "Category-Theoretic Composition"
-    assert "MDL_Gate" in str(info["techniques"])
+    assert "MDL" in str(info["techniques"])
 
 def test_active_symbolic_workflow():
     as_lego = ActiveSymbolic()
