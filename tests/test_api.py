@@ -82,6 +82,35 @@ class TestEvolutionEndpoints:
         assert "strategies" in data or "info" in data
 
 
+class TestExecutionEndpoints:
+    def test_execute_structural(self, api_url):
+        r = requests.post(f"{api_url}/execute", json={
+            "task": "Build a small pipeline",
+            "strategy": "langgraph",
+            "llm": False,  # structural — real-LLM path covered by @llm tests
+        }, timeout=30)
+        assert r.status_code == 200
+        data = r.json()
+        assert data["success"] is True
+        assert data["strategy"] == "langgraph"
+        assert data["llm_calls"] == 0
+
+    def test_execute_invalid_strategy(self, api_url):
+        r = requests.post(f"{api_url}/execute", json={
+            "task": "x", "strategy": "warp-drive", "llm": False,
+        }, timeout=15)
+        assert r.status_code == 400
+
+    def test_execute_auto_structural(self, api_url):
+        r = requests.post(f"{api_url}/execute", json={
+            "task": "Team up and collaborate on a plan",
+            "strategy": "auto",
+            "llm": False,
+        }, timeout=30)
+        assert r.status_code == 200
+        assert r.json()["strategy"] == "crewai"  # auto-classified
+
+
 class TestModelEndpoints:
     def test_list_models(self, api_url):
         r = requests.get(f"{api_url}/models", timeout=10)

@@ -59,6 +59,6 @@ Usage:
 Stats: 836+ files, 197K+ lines, 592 tests, 7 papers, 21 API keys
 """
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"
 __author__ = "Fares Rafat"
 __status__ = "Autonomous Engineering — v2.3.0 (80 SOTA Papers)"

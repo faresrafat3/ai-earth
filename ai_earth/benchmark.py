@@ -196,7 +196,7 @@ class BenchmarkSuite:
     def _bench_execution(self) -> List[BenchResult]:
         """Benchmark execution through each strategy."""
         from ai_earth.executor import ExecutionEngine
-        engine = ExecutionEngine()
+        engine = ExecutionEngine(llm=False)
         results = []
         
         strategies = ["langgraph", "crewai", "autogen", "dspy", "hybrid"]

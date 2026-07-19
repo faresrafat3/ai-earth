@@ -71,6 +71,14 @@ class EvolveRequest(BaseModel):
     context: Optional[Dict[str, Any]] = Field(None, description="Additional context")
     llm: bool = Field(True, description="Use real LLM intelligence in the evolution phases (False = deterministic offline mode)")
 
+class ExecuteRequest(BaseModel):
+    """Request to execute a task through a LEGO strategy."""
+    task: str = Field(..., description="Natural language task", min_length=1)
+    strategy: str = Field("auto", description="langgraph | crewai | autogen | dspy | hybrid | auto")
+    context: Optional[Dict[str, Any]] = Field(None, description="Extra context")
+    llm: bool = Field(True, description="Real LLM intelligence (False = structural mode, zero API calls)")
+    budget: int = Field(6, description="Max LLM calls for this run", ge=0, le=12)
+
 class ChatRequest(BaseModel):
     """Request for LLM chat."""
     prompt: str = Field(..., description="User prompt", min_length=1)
@@ -271,6 +279,18 @@ async def run_evolution(req: EvolveRequest):
         context=req.context,
     )
     
+    return result.to_dict()
+
+
+@app.post("/execute", tags=["Execution"])
+async def execute_task(req: ExecuteRequest):
+    """Execute a task through a LEGO strategy with real LLM intelligence."""
+    from ai_earth.executor import ExecutionEngine, ExecStrategy
+    valid = [s.value for s in ExecStrategy]
+    if req.strategy not in valid:
+        raise HTTPException(status_code=400, detail=f"Invalid strategy '{req.strategy}'. Valid: {valid}")
+    engine = ExecutionEngine(llm=req.llm, llm_budget_per_run=req.budget)
+    result = engine.run(req.task, strategy=req.strategy, context=req.context)
     return result.to_dict()
 
 
