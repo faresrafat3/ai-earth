@@ -149,10 +149,22 @@ class TestAggregateAndVault:
         assert len(recent) == 1
 
     def test_no_vault_ok(self):
-        rd = ResearchDiscovery(llm=False, search_fn=fake_search, crawl_fn=fake_crawl)
+        # persist=False → ephemeral run, never touches the real data/vault/
+        rd = ResearchDiscovery(llm=False, persist=False,
+                               search_fn=fake_search, crawl_fn=fake_crawl)
         intel = rd.aggregate_intelligence("agents", papers=1)
         assert intel["total_papers"] == 1
         assert rd.recent_discoveries() == []
+
+    def test_persist_default_attaches_vault(self, tmp_path, monkeypatch):
+        # Live default (no injected vault) auto-attaches a MemoryVault so
+        # discoveries survive environment resets — the platform's mission.
+        import ai_earth.memory.vault as vaultmod
+        monkeypatch.setattr(vaultmod, "_repo_root", lambda: tmp_path)
+        rd = ResearchDiscovery(llm=False, search_fn=fake_search, crawl_fn=fake_crawl)
+        assert rd.stats()["persist_enabled"] is True
+        rd.aggregate_intelligence("auto-persist", papers=1)
+        assert len(rd.recent_discoveries()) == 1
 
     def test_survives_new_session(self, tmp_path):
         root = str(tmp_path / "v")

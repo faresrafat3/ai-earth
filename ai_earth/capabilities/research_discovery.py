@@ -89,9 +89,14 @@ class ResearchDiscovery:
         llm_model: str = "gpt-4o-mini",
         max_llm_calls: int = 4,
         llm_max_tokens: int = 350,
+        persist: bool = True,
     ):
         self._router = router
         self._vault = vault
+        # When no vault is injected, auto-attach a file-backed MemoryVault
+        # (data/vault/) so discoveries survive resets. Set persist=False for
+        # ephemeral/offline runs that must not touch the real vault.
+        self._persist_enabled = persist
         self._search_fn = search_fn
         self._crawl_fn = crawl_fn
         self._llm_enabled = llm
@@ -109,6 +114,19 @@ class ResearchDiscovery:
             from ai_earth.model_router import ModelRouter
             self._router = ModelRouter()
         return self._router
+
+    @property
+    def vault(self):
+        """Lazy MemoryVault — discoveries persist to data/vault/ by default
+        so the platform's research map survives environment resets."""
+        if self._vault is None and self._persist_enabled:
+            try:
+                from ai_earth.memory.vault import MemoryVault
+                self._vault = MemoryVault()
+            except Exception as e:  # persistence must never break discovery
+                logger.warning(f"MemoryVault unavailable (non-fatal): {e}")
+                self._vault = None
+        return self._vault
 
     def _search(self, query: str, count: int) -> List[Dict]:
         if self._search_fn is not None:
@@ -236,11 +254,12 @@ class ResearchDiscovery:
     # ─── vault persistence ───────────────────────────────
 
     def _persist(self, topic: str, record: Dict[str, Any]) -> None:
-        if self._vault is None:
+        vault = self.vault
+        if vault is None:
             return
         try:
             slug = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")[:40] or "general"
-            self._vault.remember(
+            vault.remember(
                 "discoveries",
                 record.get("url") or record.get("title") or "unknown",
                 record,
@@ -251,9 +270,10 @@ class ResearchDiscovery:
 
     def recent_discoveries(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Read back the newest discoveries from the vault."""
-        if self._vault is None:
+        vault = self.vault
+        if vault is None:
             return []
-        return self._vault.recall("discoveries", limit=limit)
+        return vault.recall("discoveries", limit=limit)
 
     # ─── stats ───────────────────────────────────────────
 
@@ -264,5 +284,6 @@ class ResearchDiscovery:
             "llm_calls_made": self._llm_calls_made,
             "max_llm_calls": self._max_llm_calls,
             "llm_cost_usd": round(self._llm_cost_usd, 6),
-            "vault_attached": self._vault is not None,
+            "vault_attached": self._vault is not None or self._persist_enabled,
+            "persist_enabled": self._persist_enabled,
         }
