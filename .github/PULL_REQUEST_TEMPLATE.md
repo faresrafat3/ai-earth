@@ -1,25 +1,18 @@
-## Description
-<!-- Please include a summary of the change and which issue is fixed. Include relevant motivation and context. -->
+## Objective
+<!-- What are you contributing? Are you adding a new LEGO piece (research paper), fixing the Synapse Kernel, or patching the OmniLog Ledger? -->
 
-Fixes # (issue)
+## Type of Contribution
+- [ ] 🧱 **New LEGO Piece:** Adding logic from a new research paper.
+- [ ] 🧠 **Synapse Kernel Update:** Modifying how agents talk via the Intelligence Bus.
+- [ ] 💾 **Ledger / Storage:** Changes to the OmniLog tracking schemas.
+- [ ] 🐛 **Bug Fix:** API cooldowns, fallback logic, or syntax errors.
 
-## Type of change
-<!-- Please delete options that are not relevant. -->
-- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] 📝 Documentation update
-- [ ] 🚀 Performance/Cost Optimization (e.g., token reduction)
+## New Research Checklist (If adding a LEGO Piece)
+- [ ] Link to the original paper included.
+- [ ] The logic was implemented verbatim from the paper's methodology.
+- [ ] The piece successfully communicates with the `Intelligence Bus`.
+- [ ] The new agent operates without breaking the `Resilient Mesh` fallback.
 
-## Architecture Impact
-<!-- For AI/Agent repos: Does this change the prompt flow, the decision tree, or the orchestration logic? -->
-- [ ] Yes
-- [ ] No
-
-## Checklist:
-- [ ] My code follows the style guidelines of this project
-- [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas (like prompt engineering logic)
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings/errors in the CI pipeline
-- [ ] I have added tests that prove my fix is effective or that my feature works
+## Testing & Tracing
+- [ ] Have you verified that your agent's thoughts are correctly logging to the `OmniLog Ledger`?
+- [ ] Did you test API failure states to ensure the fallback mode activates?
