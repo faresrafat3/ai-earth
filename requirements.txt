@@ -39,7 +39,7 @@ crewai>=1.0
 
 # ─── AutoGen LEGO ─────────────────────────────────────
 autogen-agentchat>=0.5
-autogen-core>=0.5
+autogen-core>=0.7.5
 
 # ─── Platform API ─────────────────────────────────────
 fastapi>=0.110
