@@ -262,6 +262,7 @@ class SelfEvolveCore:
         llm_model: str = "gpt-4o-mini",
         llm_budget_per_cycle: int = 6,
         llm_max_tokens: int = 300,
+        vault=None,
     ):
         self._router = model_router
         self._memory = memory_store or {}
@@ -284,6 +285,23 @@ class SelfEvolveCore:
         self._cycles: List[EvolutionCycle] = []
         self._learnings: List[Dict[str, Any]] = []
         self._strategies_learned: Dict[str, float] = {}
+
+        # ─── Persistent vault (survives environment resets) ───
+        # vault=MemoryVault instance → learnings persist to data/vault/
+        # and are re-loaded on next boot. vault=None → in-memory only
+        # (backward compatible; structural tests unaffected).
+        self._vault = vault
+        if self._vault is not None:
+            try:
+                for entry in self._vault.recall("learnings", limit=200):
+                    if isinstance(entry.get("value"), dict):
+                        self._learnings.append(entry["value"])
+                if self._verbose and self._learnings:
+                    logger.info(
+                        f"🧠 Vault: restored {len(self._learnings)} learnings from previous sessions"
+                    )
+            except Exception as e:  # vault must never break evolution
+                logger.warning(f"Vault restore failed (non-fatal): {e}")
         
         # Cross-piece references (lazy init)
         self._bridge = None
@@ -769,6 +787,16 @@ class SelfEvolveCore:
         # Store in memory (keyed by task type for future retrieval)
         key = f"learning:{self._classify_task(cycle.task)}:{cycle.iteration}"
         self._memory[key] = learning
+
+        # Persist to vault so the learning survives environment resets
+        if self._vault is not None:
+            try:
+                self._vault.remember(
+                    "learnings", key, learning,
+                    tags=[learning["task_type"], learning["strategy_used"]],
+                )
+            except Exception as e:  # never let persistence break the loop
+                logger.warning(f"Vault persist failed (non-fatal): {e}")
     
     # ─── Planning Strategies ────────────────────────────
     
