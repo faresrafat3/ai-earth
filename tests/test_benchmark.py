@@ -81,7 +81,7 @@ class TestBenchmarkSuite:
     def test_run_all(self):
         from ai_earth.benchmark import BenchmarkSuite
         suite = BenchmarkSuite()
-        report = suite.run_all()
+        report = suite.run_all(llm=False)  # structural — zero HTTP, quota-safe
         assert report.total > 0
         assert report.passed >= report.total * 0.8  # At least 80% pass
 
@@ -121,14 +121,14 @@ class TestBenchmarkSuite:
     def test_health_benchmarks(self):
         from ai_earth.benchmark import BenchmarkSuite
         suite = BenchmarkSuite()
-        results = suite._bench_health()
+        results = suite._bench_health(llm=False)  # structural — zero HTTP, quota-safe
         assert len(results) == 2
         assert all(r.passed for r in results)
 
     def test_format_report(self):
         from ai_earth.benchmark import BenchmarkSuite
         suite = BenchmarkSuite()
-        report = suite.run_all()
+        report = suite.run_all(llm=False)  # structural — zero HTTP, quota-safe
         text = suite.format_report(report)
         assert "Benchmark Report" in text
         assert "Overall:" in text
@@ -140,7 +140,7 @@ class TestBenchmarkCategories:
     def test_all_results_have_required_fields(self):
         from ai_earth.benchmark import BenchmarkSuite
         suite = BenchmarkSuite()
-        report = suite.run_all()
+        report = suite.run_all(llm=False)  # structural — zero HTTP, quota-safe
         
         for r in report.results:
             d = r.to_dict()
@@ -154,10 +154,25 @@ class TestBenchmarkCategories:
     def test_all_categories_present(self):
         from ai_earth.benchmark import BenchmarkSuite
         suite = BenchmarkSuite()
-        report = suite.run_all()
+        report = suite.run_all(llm=False)  # structural — zero HTTP, quota-safe
         cats = set(r.category for r in report.results)
         assert "import_speed" in cats
         assert "execution" in cats
         assert "cross_piece" in cats
         assert "evolution" in cats
         assert "health" in cats
+
+
+# ═════════════════════════════════════════════════════════
+# Live LLM health benchmark (quota-aware, tiny)
+# ═════════════════════════════════════════════════════════
+
+@pytest.mark.llm
+def test_health_benchmark_live_llm():
+    """Health category with llm=True makes ONE real (tiny) chat call."""
+    from ai_earth.benchmark import BenchmarkSuite
+    suite = BenchmarkSuite()
+    results = suite._bench_health(llm=True)
+    router_result = [r for r in results if r.name == "model_router"][0]
+    assert router_result.passed is True
+    assert router_result.details.get("mode") != "structural"  # live path taken

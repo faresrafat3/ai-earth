@@ -65,6 +65,26 @@ def _http_timeout() -> int:
     _load_guards()
     return _HTTP_TIMEOUT
 
+# ─── Persistent daily quota ledger (survives sessions) ────
+# The ledger must NEVER break LLM calls with its own errors,
+# so every touch is wrapped. See ai_earth/core/quota_ledger.py
+
+def _ledger_ok(provider: str) -> bool:
+    """Pre-flight: does this provider still have daily budget?"""
+    try:
+        from ai_earth.core.quota_ledger import get_ledger
+        return get_ledger().allowed(provider)
+    except Exception:
+        return True  # fail-open: ledger problems must not block calls
+
+def _ledger_rec(provider: str, tokens: int = 0, cost: float = 0.0, success: bool = True):
+    """Post-flight: record the attempt (counts even on failure)."""
+    try:
+        from ai_earth.core.quota_ledger import get_ledger
+        get_ledger().record(provider, tokens=tokens, cost_usd=cost, success=success)
+    except Exception:
+        pass
+
 # ═════════════════════════════════════════════════════════
 # Provider Types
 # ═════════════════════════════════════════════════════════
@@ -344,6 +364,11 @@ def call_llm(model: str, messages: List[Dict], temperature: float = 0.7,
     attempts = 0
     tried_keys: set = set()
     for prov in providers:
+        # 📒 Ledger pre-flight: skip provider whose DAILY cap is spent
+        # (zero HTTP, zero waiting — fail-fast across sessions)
+        if not _ledger_ok(prov):
+            logger.warning(f"Provider {prov} daily quota exhausted (ledger) — skipped pre-flight")
+            continue
         # Try up to 2 different keys per provider (bounded, never infinite)
         for _ in range(2):
             if attempts >= _MAX_ATTEMPTS:
@@ -376,19 +401,23 @@ def call_llm(model: str, messages: List[Dict], temperature: float = 0.7,
                 if status == 200:
                     result = _parse_response(data, prov, provider_model, start)
                     pool.report_success(key.key_id, tokens=result["usage"]["total_tokens"], cost=result["cost_usd"])
+                    _ledger_rec(prov, tokens=result["usage"]["total_tokens"], cost=result["cost_usd"], success=True)
                     return result
                 elif status == 429:
                     retry_after = float(headers.get('retry-after', 60))
                     pool.report_failure(key.key_id, status_code=429, retry_after=retry_after)
+                    _ledger_rec(prov, success=False)
                     logger.warning(f"Key {key.key_id} rate-limited ({retry_after}s), trying next")
                     continue
                 else:
                     retry_after = float(headers.get('retry-after', 30))
                     pool.report_failure(key.key_id, status_code=status, retry_after=retry_after)
+                    _ledger_rec(prov, success=False)
                     logger.warning(f"Key {key.key_id} status {status}: {str(data)[:100]}")
                     continue
             except Exception as e:
                 pool.report_failure(key.key_id)
+                _ledger_rec(prov, success=False)
                 logger.warning(f"Key {key.key_id} error: {e}")
                 continue
         if attempts >= _MAX_ATTEMPTS:
@@ -495,10 +524,15 @@ def _parse_response(data: Dict, provider: str, model: str, start_time: float) ->
 SERPER_KEY = "218d569076c2d11413e9bb6185fc9b7c32642b45"
 
 def web_search(query: str, num_results: int = 5) -> List[Dict[str, str]]:
+    # 📒 Ledger pre-flight: Serper credits are one-time — sip slowly
+    if not _ledger_ok("serper"):
+        logger.warning("Serper daily quota exhausted (ledger) — web_search returns []")
+        return []
     try:
         resp = requests.post("https://google.serper.dev/search",
             headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
             json={"q": query, "num": num_results}, timeout=15)
+        _ledger_rec("serper", success=resp.status_code == 200)
         resp.raise_for_status()
         data = resp.json()
         return [{"title": i["title"], "link": i["link"], "snippet": i.get("snippet", "")}

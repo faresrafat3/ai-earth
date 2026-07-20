@@ -15,7 +15,7 @@ class TestPackageStructure:
         """AI Earth package is importable."""
         import ai_earth
         assert hasattr(ai_earth, '__version__')
-        assert ai_earth.__version__ == "2.6.0"
+        assert ai_earth.__version__ == "2.7.0"
 
     def test_import_core(self):
         """Core layer is importable."""

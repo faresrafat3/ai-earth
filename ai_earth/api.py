@@ -337,6 +337,51 @@ async def export_training_data():
 
 
 # ═════════════════════════════════════════════════════════
+# Quota Ledger Endpoints (daily rate-limit protection)
+# ═════════════════════════════════════════════════════════
+
+@app.get("/quota", tags=["Quota"])
+async def get_quota_status():
+    """Today's per-provider usage vs daily caps (persistent across sessions)."""
+    from ai_earth.core.quota_ledger import get_ledger
+    return get_ledger().status()
+
+@app.get("/quota/history", tags=["Quota"])
+async def get_quota_history(days: int = Query(7, ge=1, le=30)):
+    """Last N days of provider usage from the persistent ledger."""
+    from ai_earth.core.quota_ledger import get_ledger
+    return {"days": get_ledger().history(days=days)}
+
+
+# ═════════════════════════════════════════════════════════
+# Memory Vault Endpoints (cross-session persistent memory)
+# ═════════════════════════════════════════════════════════
+
+@app.get("/vault", tags=["Vault"])
+async def get_vault_stats():
+    """Vault overview: namespaces, entry counts, size on disk."""
+    from ai_earth.memory.vault import MemoryVault
+    return MemoryVault().stats()
+
+@app.get("/vault/{namespace}", tags=["Vault"])
+async def get_vault_namespace(
+    namespace: str,
+    key: Optional[str] = None,
+    tag: Optional[str] = None,
+    limit: int = Query(20, ge=1, le=200),
+):
+    """Recall entries from one vault namespace (newest last)."""
+    from ai_earth.memory.vault import MemoryVault
+    vault = MemoryVault()
+    if namespace not in vault.namespaces():
+        raise HTTPException(status_code=404, detail=f"namespace '{namespace}' not found. Available: {vault.namespaces()}")
+    return {
+        "namespace": namespace,
+        "entries": vault.recall(namespace, key=key, tag=tag, limit=limit),
+    }
+
+
+# ═════════════════════════════════════════════════════════
 # Model Router Endpoints
 # ═════════════════════════════════════════════════════════
 

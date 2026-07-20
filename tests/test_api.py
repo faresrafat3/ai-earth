@@ -126,6 +126,7 @@ class TestModelEndpoints:
         assert "providers" in data
         assert "openai" in data["providers"]
 
+    @pytest.mark.llm
     def test_chat(self, api_url):
         r = requests.post(f"{api_url}/chat", json={
             "prompt": "Hello!",

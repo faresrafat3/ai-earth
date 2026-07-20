@@ -92,6 +92,21 @@ def audit_google(pool):
             print(f"  {kh.account:<16} ⚠️ {str(e)[:40]}")
 
 
+def audit_quota_ledger():
+    """Show today's persistent quota usage vs caps."""
+    print("\n══════ QUOTA LEDGER (persistent daily budget — data/quota_ledger.json) ══════")
+    try:
+        from ai_earth.core.quota_ledger import get_ledger
+        s = get_ledger().status()
+        print(f"  date: {s['date']} | today total calls: {s['today_total_calls']}"
+              f" | lifetime: {s['lifetime']['calls']} calls, ${s['lifetime']['cost_usd']:.4f}")
+        for prov, d in s["providers"].items():
+            bar = "🔴 EXHAUSTED" if d["exhausted"] else f"🟢 {d['remaining']} left"
+            print(f"  {prov:<12} {d['used']:>4}/{d['cap']:<4} used   {bar}")
+    except Exception as e:
+        print(f"  ⚠️ ledger unavailable: {e}")
+
+
 def main():
     pool = get_key_pool()
     s = pool.stats()
@@ -101,6 +116,7 @@ def main():
     audit_openrouter(pool)
     audit_github(pool)
     audit_google(pool)
+    audit_quota_ledger()
 
     if "--smoke" in sys.argv:
         print("\n══════ LIVE SMOKE (1 real call through the pool) ══════")

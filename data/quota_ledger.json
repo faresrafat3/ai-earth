@@ -1,0 +1,28 @@
+{
+ "days": {
+  "2026-07-20": {
+   "providers": {
+    "github": {
+     "calls": 6,
+     "ok": 6,
+     "fail": 0,
+     "tokens": 1092,
+     "cost_usd": 0.00042885
+    },
+    "openrouter": {
+     "calls": 50,
+     "ok": 33,
+     "fail": 17,
+     "tokens": 5874,
+     "cost_usd": 0.00321255
+    }
+   },
+   "total_calls": 56
+  }
+ },
+ "lifetime": {
+  "calls": 56,
+  "tokens": 6966,
+  "cost_usd": 0.0036414
+ }
+}

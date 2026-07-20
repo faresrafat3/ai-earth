@@ -116,8 +116,14 @@ class BenchmarkSuite:
         print(f"Passed: {report.passed}/{report.total}")
     """
 
-    def run_all(self) -> BenchReport:
-        """Run all benchmarks."""
+    def run_all(self, llm: bool = True) -> BenchReport:
+        """Run all benchmarks.
+
+        Args:
+            llm: when False, the health category checks the Model Router
+                 structurally (constructed + keys available) with ZERO
+                 HTTP calls — protects daily quotas in test runs.
+        """
         start = time.time()
         results: List[BenchResult] = []
         
@@ -134,7 +140,7 @@ class BenchmarkSuite:
         results.extend(self._bench_evolution())
         
         # Category 5: Platform Health
-        results.extend(self._bench_health())
+        results.extend(self._bench_health(llm=llm))
         
         total_time = (time.time() - start) * 1000
         
@@ -404,7 +410,7 @@ class BenchmarkSuite:
 
     # ─── Category 5: Platform Health ───────────────────
 
-    def _bench_health(self) -> List[BenchResult]:
+    def _bench_health(self, llm: bool = True) -> List[BenchResult]:
         """Benchmark overall platform health."""
         results = []
         
@@ -444,16 +450,41 @@ class BenchmarkSuite:
             from ai_earth.model_router import ModelRouter
             router = ModelRouter()
             router.configure()  # Real LLM via Key Pool
-            response = router.chat(prompt="health check", model="gpt-4o-mini")
-            latency = (time.time() - start) * 1000
-            results.append(BenchResult(
-                name="model_router",
-                category="health",
-                passed=response.content is not None,
-                latency_ms=latency,
-                score=1.0,
-                details={"model": response.model, "cached": response.cached},
-            ))
+            if llm:
+                # Live path: one real (tiny) chat through the pool
+                response = router.chat(prompt="health check", model="gpt-4o-mini")
+                latency = (time.time() - start) * 1000
+                results.append(BenchResult(
+                    name="model_router",
+                    category="health",
+                    passed=response.content is not None,
+                    latency_ms=latency,
+                    score=1.0,
+                    details={"model": response.model, "cached": response.cached},
+                ))
+            else:
+                # Structural path: router built + keys available + quota left
+                # — ZERO HTTP, protects daily budgets during test runs
+                pool_stats = router._pool.stats() if router._pool else {}
+                available = pool_stats.get("available_keys", 0)
+                try:
+                    from ai_earth.core.quota_ledger import get_ledger
+                    quota_left = any(
+                        v.get("remaining", 0) > 0
+                        for v in get_ledger().status()["providers"].values()
+                    )
+                except Exception:
+                    quota_left = True
+                latency = (time.time() - start) * 1000
+                results.append(BenchResult(
+                    name="model_router",
+                    category="health",
+                    passed=available > 0 and quota_left,
+                    latency_ms=latency,
+                    score=1.0 if available > 0 else 0.0,
+                    details={"mode": "structural", "available_keys": available,
+                             "quota_left": quota_left},
+                ))
         except Exception as e:
             latency = (time.time() - start) * 1000
             results.append(BenchResult(
