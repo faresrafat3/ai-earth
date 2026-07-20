@@ -14,7 +14,7 @@ typing_extensions>=4.0
 # ─── Utilities ─────────────────────────────────────────
 tqdm>=4.60
 regex>=2023.0
-loguru>=0.7
+loguru>=0.7.3
 tenacity>=8.0
 overdue>=0.1.5
 cloudpickle>=3.0
