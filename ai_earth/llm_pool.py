@@ -498,14 +498,14 @@ def web_search(query: str, num_results: int = 5) -> List[Dict[str, str]]:
         return []
 
 def crawl_url(url: str) -> str:
-    """Fetch a URL's text content."""
+    """Fetch a URL's text content. Returns "" on failure — NEVER fake content."""
     try:
         resp = requests.get(url, timeout=30, headers={"User-Agent": "AI-Earth/2.3"})
         resp.raise_for_status()
         return resp.text[:50000]
     except Exception as e:
         logger.warning(f"Crawl failed for {url}: {e}")
-        return f"# Simulated content for {url} based on AI Earth metadata."
+        return ""
 
 # ═════════════════════════════════════════════════════════
 # Default Model Constants

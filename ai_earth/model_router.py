@@ -371,6 +371,11 @@ class ModelRouter:
         from ai_earth.llm_pool import web_search
         return web_search(query, num_results)
 
+    def crawl(self, url: str) -> str:
+        """Fetch a URL's text content ("" on failure — never fake)."""
+        from ai_earth.llm_pool import crawl_url
+        return crawl_url(url)
+
     def as_dspy_lm(self, model: str = None):
         model = model or self.config.default_model
         try:

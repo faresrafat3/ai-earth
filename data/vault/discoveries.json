@@ -1,0 +1,46 @@
+{
+ "namespace": "discoveries",
+ "updated": 1784521250.3167596,
+ "entries": [
+  {
+   "id": "1784521246478-1",
+   "key": "https://arxiv.org/abs/2508.07407",
+   "value": {
+    "title": "A Comprehensive Survey of Self-Evolving AI Agents",
+    "url": "https://arxiv.org/abs/2508.07407",
+    "snippet": "by J Fang · 2025 · Cited by 157 — This survey aims to provide researchers and practitioners with a systematic understanding of self-evolving AI agents, laying the foundation for ...",
+    "source": "web_search",
+    "discovered_at": 1784521239.170278,
+    "summary": "- **Core Contribution**: The paper presents a comprehensive survey of self-evolving AI agents, introducing a unified conceptual framework that integrates foundation models with lifelong agentic systems to enhance adaptability and autonomy in AI agents.\n\n- **Method**: The authors systematically review various self-evolving techniques, focusing on their components—System Inputs, Agent System, Environment, and Optimisers—and explore domain-specific evolution strategies in fields like biomedicine, programming, and finance.\n\n- **Results**: The survey identifies key strategies for self-evolving agents and discusses evaluation, safety, and ethical considerations, providing a structured understanding of how these agents can be developed and assessed.\n\n- **Importance for Self-Evolving Intelligence Platforms**: This research is crucial for creating adaptive AI systems that can continuously learn and evolve in dynamic environments, addressing the limitations of static configurations in current AI models.\n\n- **Open-Source Code**: The paper includes a GitHub repository link, indicating that there is open-source code available related to the research.",
+    "mode": "llm",
+    "chars_crawled": 5926
+   },
+   "tags": [
+    "self-evolving-ai-agents-2025",
+    "paper",
+    "llm"
+   ],
+   "ts": 1784521246.4785933
+  },
+  {
+   "id": "1784521250316-2",
+   "key": "https://arxiv.org/abs/2507.21046",
+   "value": {
+    "title": "[2507.21046] A Survey of Self-Evolving Agents",
+    "url": "https://arxiv.org/abs/2507.21046",
+    "snippet": "by H Gao · 2025 · Cited by 61 — A Survey of Self-Evolving Agents: [Submitted on 28 Jul 2025 (v1), A Survey of Self-Evolving Agents: What, When, How, and Where to Evolve on the ...",
+    "source": "web_search",
+    "discovered_at": 1784521239.1702797,
+    "summary": "- **Core Contribution**: The paper provides a systematic and comprehensive survey of self-evolving agents, outlining the mechanisms, methods, and frameworks necessary for developing agents capable of continual learning and adaptation in dynamic environments.\n\n- **Method**: The authors categorize evolutionary mechanisms across various agent components and adaptation methods by stages, analyzing algorithmic and architectural designs that facilitate evolutionary adaptation, including scalar rewards and feedback systems.\n\n- **Results**: The survey identifies critical challenges and research directions in the field, such as safety, scalability, and co-evolutionary dynamics, while highlighting applications in diverse domains like coding, education, and healthcare.\n\n- **Importance for Self-Evolving Intelligence Platforms**: This research is pivotal for advancing adaptive and robust agentic systems, contributing to the realization of Artificial Super Intelligence (ASI) where agents can autonomously evolve and outperform human intelligence across tasks.\n\n- **Open-Source Code**: The paper does not mention the availability of open-source code associated with the research.",
+    "mode": "llm",
+    "chars_crawled": 6182
+   },
+   "tags": [
+    "self-evolving-ai-agents-2025",
+    "paper",
+    "llm"
+   ],
+   "ts": 1784521250.3163843
+  }
+ ]
+}
