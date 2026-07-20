@@ -117,6 +117,12 @@ class KeyHealth:
         self.consecutive_failures += 1
         if status_code == 429:
             self.cooldown_until = time.time() + min(retry_after, 120)
+        elif status_code == 402:
+            # Out of credit / payment required — this key can't do paid calls.
+            # Long cooldown (1h) so the pool skips it and fails over fast
+            # instead of wasting attempts. Doesn't kill the key (credit may
+            # be topped up), just deprioritizes it.
+            self.cooldown_until = time.time() + 3600
         elif status_code >= 500:
             self.cooldown_until = time.time() + 5
         elif status_code == 401:
@@ -294,7 +300,11 @@ def _resolve_model(model: str, provider: str) -> str:
     """Map short model name to provider-specific format."""
     clean = model.split("/")[-1] if "/" in model else model
     if provider == "openrouter":
-        return _MODEL_MAP.get(clean, clean)
+        # Already in OpenRouter "org/model" form (e.g. "deepseek/deepseek-chat-v3:free",
+        # "openai/gpt-4o-mini") → pass through UNCHANGED. Only bare aliases get mapped.
+        if "/" in model:
+            return model
+        return _MODEL_MAP.get(model, model)
     elif provider == "github":
         # GitHub uses plain names
         return clean
