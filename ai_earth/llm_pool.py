@@ -521,12 +521,29 @@ def _parse_response(data: Dict, provider: str, model: str, start_time: float) ->
 # Web Search & Crawl
 # ═════════════════════════════════════════════════════════
 
-SERPER_KEY = "218d569076c2d11413e9bb6185fc9b7c32642b45"
+# SECURITY: the previous hardcoded value was leaked into the public repo
+# (committed since v1.4.0, visible in git history). It was a real Serper
+# key — anyone could have used it. The owner MUST rotate the key at
+# serper.dev and update the .env file with the new value.
+#
+# Read the key from the environment instead of hardcoding it. The
+# existing _load_env() helper already searches the repo .env,
+# ~/.env, and the live process env (see top of file).
+SERPER_KEY = os.environ.get("SERPER_KEY") or _load_env().get("SERPER_KEY")
+
+if not SERPER_KEY:
+    # The rest of the code treats an empty key as "no quota left today"
+    # by falling through the _ledger_ok() guard. Fail loud at import
+    # time too so a missing key is obvious instead of silent.
+    logger.warning(
+        "SERPER_KEY is not set — web_search() will always return []. "
+        "Add SERPER_KEY=... to your .env or environment."
+    )
 
 def web_search(query: str, num_results: int = 5) -> List[Dict[str, str]]:
     # 📒 Ledger pre-flight: Serper credits are one-time — sip slowly
-    if not _ledger_ok("serper"):
-        logger.warning("Serper daily quota exhausted (ledger) — web_search returns []")
+    if not SERPER_KEY or not _ledger_ok("serper"):
+        logger.warning("Serper key missing or daily quota exhausted (ledger) — web_search returns []")
         return []
     try:
         resp = requests.post("https://google.serper.dev/search",
