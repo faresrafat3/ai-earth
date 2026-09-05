@@ -69,6 +69,16 @@ We have synthesized logic from the following top-tier research:
 - **Global Key Pool**: 21 API Keys with Smart Cooldown
 - **Tests Passed**: 610+ Success baseline
 
+> ⚠️ **Temporal honesty (round 72, 2026-09-04)**: The numbers above are **marketing-style round-numbers** and under-claim the actual state when verified today. Concrete deltas:
+>
+> - **Tests Passed**: README says "610+", `pytest --collect-only` reports **655 tests collected** as of 2026-09-04. (Under-claim by ~7%.)
+> - **Total Intelligence Density**: README says "26+ Research Nodes". Actual: **23 top-level LEGO piece directories** under `ai_earth/lego/`, containing **70 class definitions total** — of which **44 are real implementations** (have method bodies) and **26 are `: pass` placeholders**. So 23 nodes is closer than 26+ but still under-claims.
+> - **SOTA Papers** (claim in `ai_earth/orchestrator.py` docstring): "80 Strategic SOTA Papers". This conflates the 50-paper Singularity milestone (in `lego/singularity_batch/`'s own docstring) with the 30 Century-batch pieces (10 each in `century_batch_{1,2,3}/` → papers 51-80). The 50-paper milestone has 10 real classes + 40 `pass` placeholders. So the "80 papers" claim is closer to "80 paper slots" than "80 working implementations".
+> - **Version**: README title says `v1.2.2`; `ai_earth/orchestrator.py` docstring says `v2.3.0`; `ai_earth/api.py` FastAPI metadata says `version="0.4.0"`; `ai_earth/ui.py` docstring says `v0.9.0`. These are **different concepts** of "version" (platform vs API vs UI subsystem) — none is a single canonical project version. The README's `v1.2.2` is the **platform marketing version**; the per-file docstrings describe individual subsystem maturity.
+> - **Status: Operational Singularity** (badge + footer): The codebase has 655 tests and 44 real implementations across 23 LEGO pieces, so the **code is operational**; the **"singularity"** framing is the project's own marketing metaphor. Kept as-is per "preserve the author's writing" rule; flagged here so a future reader knows what the bold language is grounded in.
+>
+> This blockquote follows the same pattern as `epistemic-forge/docs/benchmark/BENCHMARK.md`, `GENESIS/README.md` § Current Status, and `ai-agent-security-portfolio` — the no-hype policy of distinguishing **what was measured** from **what was claimed**.
+
 ## 🛠️ Getting Started & UI Control
 
 Run the high-end dashboard to manage the vault, trigger singularity loops, and visualize the knowledge mesh:
